@@ -132,7 +132,7 @@ const Home = () => {
               <Link 
                 key={project.id} 
                 to={`/${project.slug}`}
-                className="block border border-gray-200 hover:border-gray-300 rounded-md p-4 transition-colors"
+                className="block border border-gray-200 hover:border-gray-300 rounded-md p-4 transition-colors group"
               >
                 <div className="flex items-start">
                   <div className="text-gray-400 mr-3 font-mono text-sm pt-1">{index + 1}</div>
@@ -147,25 +147,32 @@ const Home = () => {
                       <ProjectAvatar name={project.name} size="md" />
                     )}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 relative">
                     <div className="flex flex-wrap items-center justify-between">
-                      <h3 className="text-base font-medium text-gray-900">{project.name}</h3>
-                      {(project.totalIssues ?? 0) > 0 && (
-                        <div className="flex items-center space-x-2 mt-1 md:mt-0">
-                          <div className="text-xs text-gray-500 whitespace-nowrap">
-                            {project.totalIssues} issues
-                          </div>
-                          <div className="text-xs font-medium rounded-full px-2 py-0.5 bg-gray-100">
-                            <span className={(project.solvedIssues ?? 0) > 0 ? 'text-green-600' : 'text-gray-500'}>
-                              {getSolvedPercentage(project.totalIssues ?? 0, project.solvedIssues ?? 0)}% solved
-                            </span>
-                          </div>
-                        </div>
-                      )}
+                      <h3 className="text-base font-medium text-gray-900 group-hover:text-gray-700">{project.name}</h3>
+                      
+                      {/* Subtle issue indicators */}
+                      <div className="flex items-center space-x-2 mt-1 md:mt-0">
+                        <span className="text-xs text-gray-500 flex items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                          </svg>
+                          {project.totalIssues || 0} issues
+                        </span>
+                        
+                        <span className="text-xs flex items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          <span className={(project.solvedIssues ?? 0) > 0 ? 'text-green-600' : 'text-gray-500'}>
+                            {getSolvedPercentage(project.totalIssues ?? 0, project.solvedIssues ?? 0)}% solved
+                          </span>
+                        </span>
+                      </div>
                     </div>
                     <p className="text-gray-600 text-sm mt-1 line-clamp-2">{project.description}</p>
                     <div className="flex items-center text-sm text-gray-500 mt-2">
-                      <span>{new Date(project.createdAt).toLocaleDateString()}</span>
+                      {/* <span>{new Date(project.createdAt).toLocaleDateString()}</span> */}
                       {project.website && (
                         <a 
                           href={project.website} 
@@ -180,6 +187,19 @@ const Home = () => {
                           {project.website.replace(/^https?:\/\/(www\.)?/, '')}
                         </a>
                       )}
+                    </div>
+                    
+                    {/* Add a subtle arrow icon that appears on hover */}
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        className="h-4 w-4 text-gray-400"
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
                   </div>
                 </div>
