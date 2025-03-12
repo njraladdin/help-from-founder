@@ -33,6 +33,9 @@ interface Project {
   name: string;
   slug: string;
   ownerId: string;
+  twitterUrl?: string;
+  linkedinUrl?: string;
+  githubUrl?: string;
 }
 
 // Issue tags

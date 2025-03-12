@@ -14,6 +14,9 @@ const EditProject = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [website, setWebsite] = useState('');
+  const [twitterUrl, setTwitterUrl] = useState('');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [githubUrl, setGithubUrl] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
   const [originalSlug, setOriginalSlug] = useState('');
@@ -93,6 +96,9 @@ const EditProject = () => {
         setDescription(projectData.description);
         setWebsite(projectData.website || '');
         setLogoUrl(projectData.logoUrl || '');
+        setTwitterUrl(projectData.twitterUrl || '');
+        setLinkedinUrl(projectData.linkedinUrl || '');
+        setGithubUrl(projectData.githubUrl || '');
         setOriginalSlug(projectData.slug);
         
       } catch (error) {
@@ -182,6 +188,9 @@ const EditProject = () => {
         description,
         website: website || null,
         logoUrl: finalLogoUrl || null,
+        twitterUrl: twitterUrl || null,
+        linkedinUrl: linkedinUrl || null,
+        githubUrl: githubUrl || null,
         slug,
         updatedAt: serverTimestamp(),
       });
@@ -288,6 +297,53 @@ const EditProject = () => {
             className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
             placeholder="https://example.com"
           />
+        </div>
+        
+        {/* Social Media Links */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-medium text-gray-700">Social Media Links (optional)</h3>
+          
+          <div>
+            <label htmlFor="twitterUrl" className="block text-gray-700 mb-2 text-sm">
+              Twitter/X
+            </label>
+            <input
+              id="twitterUrl"
+              type="url"
+              value={twitterUrl}
+              onChange={(e) => setTwitterUrl(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+              placeholder="https://twitter.com/username"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="linkedinUrl" className="block text-gray-700 mb-2 text-sm">
+              LinkedIn
+            </label>
+            <input
+              id="linkedinUrl"
+              type="url"
+              value={linkedinUrl}
+              onChange={(e) => setLinkedinUrl(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+              placeholder="https://linkedin.com/in/username"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="githubUrl" className="block text-gray-700 mb-2 text-sm">
+              GitHub
+            </label>
+            <input
+              id="githubUrl"
+              type="url"
+              value={githubUrl}
+              onChange={(e) => setGithubUrl(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+              placeholder="https://github.com/username"
+            />
+          </div>
         </div>
         
         <div>

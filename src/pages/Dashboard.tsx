@@ -15,6 +15,9 @@ interface Project {
   logoUrl?: string;
   totalIssues?: number;
   solvedIssues?: number;
+  twitterUrl?: string;
+  linkedinUrl?: string;
+  githubUrl?: string;
 }
 
 const Dashboard = () => {
@@ -49,6 +52,9 @@ const Dashboard = () => {
             logoUrl: data.logoUrl,
             totalIssues: data.totalIssues || 0,
             solvedIssues: data.solvedIssues || 0,
+            twitterUrl: data.twitterUrl,
+            linkedinUrl: data.linkedinUrl,
+            githubUrl: data.githubUrl,
           });
         });
 

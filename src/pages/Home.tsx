@@ -14,6 +14,9 @@ interface Project {
   totalIssues?: number;
   solvedIssues?: number;
   website?: string;
+  twitterUrl?: string;
+  linkedinUrl?: string;
+  githubUrl?: string;
 }
 
 const Home = () => {
@@ -41,6 +44,9 @@ const Home = () => {
             totalIssues: data.totalIssues || 0,
             solvedIssues: data.solvedIssues || 0,
             website: data.website,
+            twitterUrl: data.twitterUrl,
+            linkedinUrl: data.linkedinUrl,
+            githubUrl: data.githubUrl,
           });
         });
         
