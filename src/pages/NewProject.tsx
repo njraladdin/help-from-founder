@@ -5,6 +5,7 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'fire
 import { db } from '../lib/firebase';
 import { FirebaseError } from 'firebase/app';
 import ProjectAvatar from '../components/ProjectAvatar';
+import ImageUpload from '../components/ImageUpload';
 
 const NewProject = () => {
   const [name, setName] = useState('');
@@ -101,6 +102,11 @@ const NewProject = () => {
     }
   };
 
+  // Handle image upload completion
+  const handleImageUploaded = (imageUrl: string) => {
+    setLogoUrl(imageUrl);
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4">
       <h1 className="text-2xl font-medium text-gray-900 mb-8 pt-6">Create New Project</h1>
@@ -128,7 +134,7 @@ const NewProject = () => {
         
         {name && (
           <div className="flex items-center space-x-4 py-2">
-            <ProjectAvatar name={name} size="md" />
+            <ProjectAvatar name={name} size="md" imageUrl={logoUrl} />
             <div>
               <p className="text-sm text-gray-500">
                 Project URL will be: <span className="font-mono">{window.location.origin}/{generateSlug(name)}</span>
@@ -166,20 +172,13 @@ const NewProject = () => {
         </div>
         
         <div>
-          <label htmlFor="logoUrl" className="block text-gray-700 mb-2 text-sm">
-            Logo URL (optional)
+          <label className="block text-gray-700 mb-2 text-sm">
+            Project Logo (optional)
           </label>
-          <input
-            id="logoUrl"
-            type="url"
-            value={logoUrl}
-            onChange={(e) => setLogoUrl(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
-            placeholder="https://example.com/logo.png"
+          <ImageUpload 
+            onImageUploaded={handleImageUploaded} 
+            currentImageUrl={logoUrl}
           />
-          <p className="text-xs text-gray-500 mt-1">
-            Provide a URL to your project logo (recommended size: 128x128px)
-          </p>
         </div>
         
         <div className="pt-4">

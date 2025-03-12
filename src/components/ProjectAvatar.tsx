@@ -1,9 +1,10 @@
 interface ProjectAvatarProps {
   name: string;
   size?: 'sm' | 'md' | 'lg';
+  imageUrl?: string;
 }
 
-const ProjectAvatar = ({ name, size = 'md' }: ProjectAvatarProps) => {
+const ProjectAvatar = ({ name, size = 'md', imageUrl }: ProjectAvatarProps) => {
   // Get the first two letters of the name
   const getFirstTwoLetters = (name: string) => {
     return name.trim().substring(0, 2).toUpperCase();
@@ -33,6 +34,19 @@ const ProjectAvatar = ({ name, size = 'md' }: ProjectAvatarProps) => {
     lg: 'w-16 h-16 text-xl'
   }[size];
 
+  // If we have an image URL, display the image
+  if (imageUrl) {
+    return (
+      <img 
+        src={imageUrl} 
+        alt={name} 
+        className={`${sizeClass} rounded-full object-cover`}
+        title={name}
+      />
+    );
+  }
+
+  // Otherwise, display the fallback avatar with initials
   return (
     <div 
       className={`${sizeClass} rounded-full flex items-center justify-center text-white font-medium ${getBackgroundColor(name)}`}
