@@ -11,11 +11,15 @@ const NewProject = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [website, setWebsite] = useState('');
-  const [logoUrl, setLogoUrl] = useState('');
+  const [logoUrl] = useState('');
+  const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+
+  // Worker URL for image upload
+  const WORKER_URL = import.meta.env.VITE_WORKER_URL;
 
   // Generate a slug from the project name
   const generateSlug = (projectName: string) => {
@@ -49,6 +53,28 @@ const NewProject = () => {
     return slug;
   };
 
+  // Upload image to R2 via worker
+  const uploadImage = async (file: File): Promise<string> => {
+    // Create a FormData object
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Upload directly to our worker
+    const response = await fetch(`${WORKER_URL}/api/images/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!data.success || !data.key) {
+      throw new Error(data.error || 'Failed to upload image');
+    }
+
+    // Construct the final image URL
+    return `${WORKER_URL}/api/images/${data.key}`;
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
@@ -74,12 +100,25 @@ const NewProject = () => {
       const baseSlug = generateSlug(name);
       const slug = await getUniqueSlug(baseSlug);
       
+      // Upload logo if one was selected
+      let finalLogoUrl = logoUrl;
+      if (selectedLogoFile) {
+        try {
+          finalLogoUrl = await uploadImage(selectedLogoFile);
+        } catch (error) {
+          console.error('Error uploading logo:', error);
+          setError('Failed to upload logo image. Project creation aborted.');
+          setLoading(false);
+          return;
+        }
+      }
+      
       // Create project document
       const projectRef = await addDoc(collection(db, 'projects'), {
         name,
         description,
         website: website || null,
-        logoUrl: logoUrl || null,
+        logoUrl: finalLogoUrl || null,
         slug,
         ownerId: currentUser.uid,
         createdAt: serverTimestamp(),
@@ -102,9 +141,9 @@ const NewProject = () => {
     }
   };
 
-  // Handle image upload completion
-  const handleImageUploaded = (imageUrl: string) => {
-    setLogoUrl(imageUrl);
+  // Handle file selection
+  const handleFileSelected = (file: File) => {
+    setSelectedLogoFile(file);
   };
 
   return (
@@ -176,9 +215,14 @@ const NewProject = () => {
             Project Logo (optional)
           </label>
           <ImageUpload 
-            onImageUploaded={handleImageUploaded} 
+            onFileSelected={handleFileSelected} 
             currentImageUrl={logoUrl}
           />
+          {selectedLogoFile && (
+            <p className="mt-1 text-xs text-gray-500">
+              Logo will be uploaded when you create the project
+            </p>
+          )}
         </div>
         
         <div className="pt-4">
@@ -187,7 +231,15 @@ const NewProject = () => {
             disabled={loading}
             className="px-5 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:opacity-50 transition-colors text-sm"
           >
-            {loading ? 'Creating...' : 'Create Project'}
+            {loading ? (
+              <span className="flex items-center">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Creating...
+              </span>
+            ) : 'Create Project'}
           </button>
         </div>
       </form>
