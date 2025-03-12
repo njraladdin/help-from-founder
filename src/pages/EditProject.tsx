@@ -15,12 +15,16 @@ const EditProject = () => {
   const [description, setDescription] = useState('');
   const [website, setWebsite] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
+  const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
   const [originalSlug, setOriginalSlug] = useState('');
   
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Worker URL for image upload
+  const WORKER_URL = import.meta.env.VITE_WORKER_URL;
 
   // Generate a slug from the project name
   const generateSlug = (projectName: string) => {
@@ -106,6 +110,28 @@ const EditProject = () => {
     fetchProject();
   }, [currentUser, projectId]);
 
+  // Upload image to R2 via worker
+  const uploadImage = async (file: File): Promise<string> => {
+    // Create a FormData object
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Upload directly to our worker
+    const response = await fetch(`${WORKER_URL}/api/images/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!data.success || !data.key) {
+      throw new Error(data.error || 'Failed to upload image');
+    }
+
+    // Construct the final image URL
+    return `${WORKER_URL}/api/images/${data.key}`;
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
@@ -137,12 +163,25 @@ const EditProject = () => {
         slug = await getUniqueSlug(baseSlug);
       }
       
+      // Upload logo if one was selected
+      let finalLogoUrl = logoUrl;
+      if (selectedLogoFile) {
+        try {
+          finalLogoUrl = await uploadImage(selectedLogoFile);
+        } catch (error) {
+          console.error('Error uploading logo:', error);
+          setError('Failed to upload logo image. Project update aborted.');
+          setLoading(false);
+          return;
+        }
+      }
+      
       // Update project document
       await updateDoc(doc(db, 'projects', projectId!), {
         name,
         description,
         website: website || null,
-        logoUrl: logoUrl || null,
+        logoUrl: finalLogoUrl || null,
         slug,
         updatedAt: serverTimestamp(),
       });
@@ -163,9 +202,9 @@ const EditProject = () => {
     }
   };
 
-  // Handle image upload completion
-  const handleImageUploaded = (imageUrl: string) => {
-    setLogoUrl(imageUrl);
+  // Handle file selection
+  const handleFileSelected = (file: File) => {
+    setSelectedLogoFile(file);
   };
 
   if (fetchLoading) {
@@ -256,9 +295,14 @@ const EditProject = () => {
             Project Logo (optional)
           </label>
           <ImageUpload 
-            onImageUploaded={handleImageUploaded} 
+            onFileSelected={handleFileSelected} 
             currentImageUrl={logoUrl}
           />
+          {selectedLogoFile && (
+            <p className="mt-1 text-xs text-gray-500">
+              Logo will be uploaded when you save changes
+            </p>
+          )}
         </div>
         
         <div className="pt-4 flex items-center space-x-3">
