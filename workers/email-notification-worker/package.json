@@ -18,6 +18,9 @@
 	},
 	"dependencies": {
 		"@sendgrid/mail": "^8.1.4",
-		"hono": "^4.7.4"
+		"firebase-admin": "^13.2.0",
+		"google-auth-library": "^9.15.1",
+		"hono": "^4.7.4",
+		"sendpulse-api": "^1.1.7"
 	}
 }

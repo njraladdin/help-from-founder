@@ -7,8 +7,15 @@
 	"name": "email-notification-worker",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-03-11",
+	"compatibility_flags": ["nodejs_compat"],
 	"observability": {
 		"enabled": true
+	},
+	/**
+	 * Vars for the worker
+	 */
+	"vars": {
+		"SEND_EMAIL_PATH": "/api/send-email"
 	}
 	/**
 	 * Smart Placement

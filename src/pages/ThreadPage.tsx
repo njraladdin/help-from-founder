@@ -5,6 +5,7 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../lib/AuthContext';
 import ProjectAvatar from '../components/ProjectAvatar';
 import { getAnonymousUserId, getAnonymousUserName } from '../lib/userUtils';
+import { sendNewIssueNotification } from '../lib/emailService';
 
 interface Thread {
   id: string;
@@ -36,6 +37,7 @@ interface Project {
   twitterUrl?: string;
   linkedinUrl?: string;
   githubUrl?: string;
+  ownerEmail?: string;
 }
 
 // Issue tags
@@ -92,11 +94,27 @@ const ThreadPage = () => {
         const projectDoc = projectSnapshot.docs[0];
         const projectData = projectDoc.data();
         
+        // Fetch the owner's email from users collection
+        let ownerEmail;
+        try {
+          const userDoc = await getDoc(doc(db, 'users', projectData.ownerId));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            ownerEmail = userData.email;
+          }
+        } catch (userError) {
+          console.error('Error fetching project owner data:', userError);
+        }
+        
         const projectObj = {
           id: projectDoc.id,
           name: projectData.name,
           slug: projectData.slug,
           ownerId: projectData.ownerId,
+          ownerEmail: ownerEmail,
+          twitterUrl: projectData.twitterUrl,
+          linkedinUrl: projectData.linkedinUrl,
+          githubUrl: projectData.githubUrl,
         };
         
         setProject(projectObj);
@@ -222,6 +240,30 @@ const ThreadPage = () => {
       await updateDoc(threadRef, {
         responseCount: increment(1)
       });
+      
+      // Send email notification to the project owner if the response is not from the founder
+      if (!isFounder && project.ownerEmail) {
+        // Create the issue URL
+        const baseUrl = window.location.origin;
+        const issueUrl = `${baseUrl}/${projectSlug}/thread/${threadId}`;
+        
+        // Send notification
+        sendNewIssueNotification({
+          type: 'new_response',
+          projectId: project.id,
+          projectName: project.name,
+          issueId: thread.id,
+          issueTitle: thread.title,
+          responseContent: responseContent,
+          responseAuthor: authorName,
+          founderEmail: project.ownerEmail,
+          createdAt: new Date().toISOString(),
+          issueUrl: issueUrl
+        }).catch(error => {
+          // Just log errors here but don't block the UI flow
+          console.error('Failed to send email notification:', error);
+        });
+      }
       
       // Reset form
       setResponseContent('');

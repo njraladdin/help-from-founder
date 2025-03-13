@@ -4,31 +4,49 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Users collection
     match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
-      allow update: if request.auth != null && request.auth.uid == userId;
+      // SECURITY: Allow public read access to user data
+      // This is required for email notifications and user profile displays for non-authenticated users
+      allow read: if true;
+      // Only allow users to write their own data
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
     
     // Projects collection
     match /projects/{projectId} {
-      allow read: if true; // Anyone can read projects
+      // Anyone can read projects
+      allow read: if true;
+      // Only authenticated users can create projects
       allow create: if request.auth != null;
+      // Only the project owner can update or delete projects
       allow update, delete: if request.auth != null && request.auth.uid == resource.data.ownerId;
     }
     
     // Threads collection
     match /threads/{threadId} {
-      allow read: if true; // Anyone can read threads
-      allow create: if true; // Anyone can create threads
-      allow update, delete: if request.auth != null && 
+      // Anyone can read threads
+      allow read: if true;
+      // Anyone can create threads
+      allow create: if true;
+      // Allow updating threads for response count and status changes
+      // This allows both the thread author and project owner to update threads
+      allow update: if request.auth != null && 
           (request.auth.uid == resource.data.authorId || 
-          getProject(resource.data.projectId).ownerId == request.auth.uid);
+           getProject(resource.data.projectId).ownerId == request.auth.uid) ||
+          // Also allow unauthenticated users to update response count
+          (!request.auth && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['responseCount']));
+      // Only the thread author or project owner can delete threads
+      allow delete: if request.auth != null && 
+          (request.auth.uid == resource.data.authorId || 
+           getProject(resource.data.projectId).ownerId == request.auth.uid);
     }
     
     // Responses collection
     match /responses/{responseId} {
-      allow read: if true; // Anyone can read responses
-      allow create: if request.auth != null || !exists(/databases/$(database)/documents/responses/$(responseId));
+      // Anyone can read responses
+      allow read: if true;
+      // Anyone can create responses
+      allow create: if true;
+      // Only the response author can update or delete their responses
       allow update, delete: if request.auth != null && request.auth.uid == resource.data.authorId;
     }
     

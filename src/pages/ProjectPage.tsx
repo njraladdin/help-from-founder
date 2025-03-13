@@ -1,10 +1,11 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, updateDoc, increment, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../lib/AuthContext';
 import ProjectAvatar from '../components/ProjectAvatar';
 import { getAnonymousUserId, getAnonymousUserName } from '../lib/userUtils';
+import { sendNewIssueNotification } from '../lib/emailService';
 
 interface Project {
   id: string;
@@ -19,6 +20,7 @@ interface Project {
   twitterUrl?: string;
   linkedinUrl?: string;
   githubUrl?: string;
+  ownerEmail?: string;
 }
 
 interface Thread {
@@ -95,16 +97,29 @@ const ProjectPage = () => {
         const projectDoc = querySnapshot.docs[0];
         const projectData = projectDoc.data();
         
+        // Fetch the owner's email from users collection
+        let ownerEmail;
+        try {
+          const userDoc = await getDoc(doc(db, 'users', projectData.ownerId));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            ownerEmail = userData.email;
+          }
+        } catch (userError) {
+          console.error('Error fetching project owner data:', userError);
+        }
+        
         const projectObj = {
           id: projectDoc.id,
           name: projectData.name,
           description: projectData.description,
           ownerId: projectData.ownerId,
-          website: projectData.website,
-          logoUrl: projectData.logoUrl,
+          ownerEmail: ownerEmail,
+          createdAt: projectData.createdAt?.toDate() || new Date(),
           totalIssues: projectData.totalIssues || 0,
           solvedIssues: projectData.solvedIssues || 0,
-          createdAt: projectData.createdAt?.toDate() || new Date(),
+          logoUrl: projectData.logoUrl,
+          website: projectData.website,
           twitterUrl: projectData.twitterUrl,
           linkedinUrl: projectData.linkedinUrl,
           githubUrl: projectData.githubUrl,
@@ -259,7 +274,7 @@ const ProjectPage = () => {
       const anonymousId = !currentUser ? getAnonymousUserId() : null;
       
       // Create thread document
-      await addDoc(collection(db, 'threads'), {
+      const threadRef = await addDoc(collection(db, 'threads'), {
         projectId: project.id,
         title: threadTitle,
         content: threadContent,
@@ -282,6 +297,31 @@ const ProjectPage = () => {
       
       // Store the title for the confirmation message
       setSubmittedThreadTitle(threadTitle);
+      
+      // Send email notification to the project owner
+      const baseUrl = window.location.origin;
+      const issueUrl = `${baseUrl}/${projectSlug}/${threadRef.id}`;
+      
+      // Only send notification if we have the owner's email
+      if (project.ownerEmail) {
+        sendNewIssueNotification({
+          type: 'new_issue',
+          projectId: project.id,
+          projectName: project.name,
+          issueId: threadRef.id,
+          issueTitle: threadTitle,
+          issueContent: threadContent,
+          founderEmail: project.ownerEmail,
+          userName: authorName,
+          createdAt: new Date().toISOString(),
+          issueUrl: issueUrl
+        }).catch(error => {
+          // Just log errors here but don't block the UI flow
+          console.error('Failed to send email notification:', error);
+        });
+      } else {
+        console.warn('Owner email not available, skipping email notification');
+      }
       
       // Reset form
       setThreadTitle('');
