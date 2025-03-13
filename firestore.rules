@@ -17,8 +17,12 @@ service cloud.firestore {
       allow read: if true;
       // Only authenticated users can create projects
       allow create: if request.auth != null;
-      // Only the project owner can update or delete projects
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.ownerId;
+      // Allow anyone to update just the totalIssues field
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalIssues']) ||
+                     // Only the project owner can update other fields
+                     (request.auth != null && request.auth.uid == resource.data.ownerId);
+      // Only the project owner can delete projects
+      allow delete: if request.auth != null && request.auth.uid == resource.data.ownerId;
     }
     
     // Threads collection
