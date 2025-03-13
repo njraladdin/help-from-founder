@@ -3,7 +3,6 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, increment, deleteDoc, FieldValue } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../lib/AuthContext';
-import ProjectAvatar from '../components/ProjectAvatar';
 import { getAnonymousUserId, getAnonymousUserName } from '../lib/userUtils';
 import { sendNewIssueNotification } from '../lib/emailService';
 
@@ -415,14 +414,17 @@ const ThreadPage = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-gray-800"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   if (error || !thread || !project) {
     return (
-      <div className="max-w-4xl mx-auto text-center py-16">
+      <div className="max-w-4xl mx-auto text-center py-16 px-4">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
         <h1 className="text-2xl font-medium text-gray-900 mb-4">{error || 'Thread not found'}</h1>
         <p className="text-gray-600 mb-6">
           The thread you're looking for might have been removed or doesn't exist.
@@ -430,8 +432,11 @@ const ThreadPage = () => {
         {projectSlug && (
           <Link
             to={`/${projectSlug}`}
-            className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
+            className="px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors inline-flex items-center font-medium"
           >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
             Back to Project
           </Link>
         )}
@@ -442,157 +447,156 @@ const ThreadPage = () => {
   const isFounder = currentUser && currentUser.uid === project.ownerId;
 
   return (
-    <div className="max-w-4xl mx-auto px-4">
+    <div className="max-w-3xl mx-auto px-4 pb-20">
       {/* Breadcrumb Navigation */}
-      <div className="mb-6 text-sm text-gray-500">
-        <Link to="/" className="hover:text-gray-700">Home</Link>
-        <span className="mx-2">/</span>
-        <Link to={`/${projectSlug}`} className="hover:text-gray-700">{project.name}</Link>
-        <span className="mx-2">/</span>
-        <span className="text-gray-900">Issue</span>
+      <div className="py-4 text-sm flex items-center mb-4">
+        <Link to="/" className="text-gray-500 hover:text-gray-700 transition-colors">Home</Link>
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mx-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+        <Link to={`/${projectSlug}`} className="text-gray-500 hover:text-gray-700 transition-colors font-medium">{project.name}</Link>
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mx-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+        <span className="text-gray-900 truncate max-w-[180px]">{thread.title}</span>
       </div>
       
       {/* Thread Header */}
-      <div className="border border-gray-200 rounded-md p-6 mb-8">
-        <div className="flex items-center space-x-2 mb-4">
-          {getStatusBadge(thread.status)}
-          {getTagBadge(thread.tag)}
+      <div className="border border-gray-200 rounded-lg p-6 mb-8 shadow-sm bg-white">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-center space-x-2">
+            {getStatusBadge(thread.status)}
+            {getTagBadge(thread.tag)}
+          </div>
+          
+          {/* Status Controls - Only visible to founders */}
+          {isFounder && thread.status !== 'closed' && (
+            <div className="dropdown relative">
+              <button className="text-gray-500 hover:text-gray-700 p-1 rounded-md hover:bg-gray-100 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
+                </svg>
+              </button>
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10 hidden">
+                {thread.status === 'open' && (
+                  <button
+                    onClick={() => handleUpdateStatus('resolved')}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Mark as Resolved
+                  </button>
+                )}
+                {thread.status === 'resolved' && (
+                  <button
+                    onClick={() => handleUpdateStatus('open')}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Reopen Issue
+                  </button>
+                )}
+                <button
+                  onClick={() => handleUpdateStatus('closed')}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Close Issue
+                </button>
+                <div className="border-t border-gray-200 my-1"></div>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         
         <h1 className="text-2xl font-medium text-gray-900 mb-4">{thread.title}</h1>
         
-        <div className="flex items-center text-sm text-gray-500 mb-6">
-          <span>Opened {formatRelativeTime(thread.createdAt)} by {thread.authorName}</span>
-          {!currentUser && thread.anonymousId === getAnonymousUserId() && (
-            <span className="ml-2 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-md">You</span>
-          )}
-        </div>
-        
-        <div className="prose max-w-none mb-6 p-4 bg-gray-50 rounded-md whitespace-pre-line border border-gray-100">
-          {thread.content}
-        </div>
-        
-        {/* Thread Status Controls - Only visible to founders */}
-        {isFounder && thread.status !== 'closed' && (
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <p className="text-sm text-gray-500 mb-3">Manage this issue:</p>
-            <div className="flex space-x-2">
-              {thread.status === 'open' && (
-                <button
-                  onClick={() => handleUpdateStatus('resolved')}
-                  className="px-3 py-1 bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors text-sm"
-                >
-                  Mark as Resolved
-                </button>
-              )}
-              {thread.status === 'resolved' && (
-                <button
-                  onClick={() => handleUpdateStatus('open')}
-                  className="px-3 py-1 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors text-sm"
-                >
-                  Reopen Issue
-                </button>
-              )}
-              <button
-                onClick={() => handleUpdateStatus('closed')}
-                className="px-3 py-1 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 transition-colors text-sm"
-              >
-                Close Issue
-              </button>
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="px-3 py-1 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors text-sm ml-auto"
-              >
-                Delete
-              </button>
-            </div>
-
-            {/* Delete Confirmation Modal */}
-            {showDeleteConfirm && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                <div className="bg-white p-6 rounded-md max-w-md w-full mx-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Delete this issue?</h3>
-                  <p className="text-gray-600 mb-4">
-                    This will permanently delete this issue and all its responses. This action cannot be undone.
-                  </p>
-                  <div className="flex space-x-3 justify-end">
-                    <button
-                      onClick={() => setShowDeleteConfirm(false)}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm"
-                      disabled={isDeleting}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleDeleteThread}
-                      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm disabled:opacity-50"
-                      disabled={isDeleting}
-                    >
-                      {isDeleting ? 'Deleting...' : 'Delete'}
-                    </button>
-                  </div>
-                </div>
-              </div>
+        <div className="flex items-center mb-6">
+          <div className="bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <div className="ml-2 text-sm text-gray-600">
+            <span className="font-medium text-gray-900">{thread.authorName}</span>
+            <span className="mx-2">·</span>
+            <span>{formatRelativeTime(thread.createdAt)}</span>
+            {!currentUser && thread.anonymousId === getAnonymousUserId() && (
+              <span className="ml-2 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-md">You</span>
             )}
           </div>
-        )}
+        </div>
+        
+        <div className="prose max-w-none mb-6 p-4 bg-gray-50 rounded-lg whitespace-pre-line border border-gray-100">
+          {thread.content}
+        </div>
       </div>
       
-      {/* Responses Section */}
+      {/* Conversation Section */}
       <div className="mb-8">
-        <h2 className="text-xl font-medium text-gray-900 mb-6">{responses.length} {responses.length === 1 ? 'Response' : 'Responses'}</h2>
-        
         {responses.length > 0 ? (
-          <div className="space-y-6 mb-8">
+          <div className="space-y-4">
             {responses.map((response) => (
-              <div key={response.id} className="border border-gray-200 rounded-md p-5">
-                <div className="flex justify-between items-start mb-4">
+              <div 
+                key={response.id} 
+                className={`border border-gray-200 rounded-lg overflow-hidden ${response.isFounder ? 'border-l-4 border-l-blue-500' : ''}`}
+              >
+                <div className={`flex items-center justify-between px-4 py-3 ${response.isFounder ? 'bg-blue-50' : 'bg-gray-50'}`}>
                   <div className="flex items-center">
-                    {response.isFounder ? (
-                      <div className="flex items-center">
-                        <ProjectAvatar name={project.name} size="sm" />
-                        <div className="ml-2">
-                          <span className="font-medium text-gray-900">{response.authorName}</span>
-                          <span className="ml-2 bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-md">Founder</span>
-                        </div>
-                      </div>
-                    ) : response.anonymousId && response.anonymousId === getAnonymousUserId() && !currentUser ? (
-                      <div className="flex items-center text-gray-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        <span className="text-gray-900">{response.authorName}</span>
-                        <span className="ml-2 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-md">You</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center text-gray-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        <span className="text-gray-900">{response.authorName}</span>
-                      </div>
-                    )}
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-2 ${response.isFounder ? 'bg-blue-100' : 'bg-gray-200'}`}>
+                      <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${response.isFounder ? 'text-blue-600' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-900">{response.authorName}</span>
+                      {response.isFounder && (
+                        <span className="ml-2 bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">
+                          Founder
+                        </span>
+                      )}
+                      {!currentUser && response.anonymousId === getAnonymousUserId() && (
+                        <span className="ml-2 bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full">
+                          You
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-500">{formatRelativeTime(response.createdAt)}</div>
+                  <div className="text-sm text-gray-500">
+                    {formatRelativeTime(response.createdAt)}
+                  </div>
                 </div>
                 
-                <div className="prose max-w-none whitespace-pre-line text-gray-700">
-                  {response.content}
+                <div className="px-4 py-4 bg-white">
+                  <div className="prose max-w-none text-gray-700 whitespace-pre-line">
+                    {response.content}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="border border-gray-200 rounded-md p-6 text-center mb-8">
-            <p className="text-gray-600">No responses yet. Be the first to respond!</p>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center mb-8">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <h3 className="text-lg font-medium text-gray-800 mb-2">No responses yet</h3>
+            <p className="text-gray-600 max-w-md mx-auto">
+              Be the first to respond to this question. Your insights could help solve this issue.
+            </p>
           </div>
         )}
       </div>
       
       {/* Add Response Form - Only visible if thread is not closed */}
       {thread.status !== 'closed' ? (
-        <div className="border border-gray-200 rounded-md p-6 mb-8">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Add a response</h3>
+        <div className="border border-gray-200 rounded-lg p-6 mb-8 shadow-sm bg-white">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            {isFounder ? "Reply to this question" : "Add your response"}
+          </h3>
           
           {formError && (
             <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-md mb-4 text-sm">
@@ -605,13 +609,20 @@ const ThreadPage = () => {
               <textarea
                 value={responseContent}
                 onChange={(e) => setResponseContent(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 rows={4}
-                placeholder="Type your response here..."
+                placeholder={isFounder ? "Type your response to help solve this issue..." : "Share your thoughts or additional information..."}
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">
-                {!currentUser && "You'll be assigned a persistent ID that will identify your responses."}
+              <p className="text-xs text-gray-500 mt-1 flex items-center">
+                {!currentUser && (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Your name will appear as "{getAnonymousUserName()}"
+                  </>
+                )}
               </p>
             </div>
             
@@ -619,34 +630,68 @@ const ThreadPage = () => {
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:opacity-50 text-sm"
+                className={`px-5 py-2.5 ${isFounder ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-800 hover:bg-gray-900'} text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-sm w-full md:w-auto`}
               >
-                {submitting ? 'Submitting...' : 'Submit Response'}
+                {submitting ? 'Sending...' : isFounder ? 'Send Founder Response' : 'Post Response'}
               </button>
             </div>
           </form>
         </div>
       ) : (
-        <div className="border border-gray-200 rounded-md p-6 text-center mb-8">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mx-auto text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="border border-gray-200 rounded-lg p-6 text-center mb-8 bg-gray-50">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
-          <p className="text-gray-700">This issue has been closed and is no longer accepting responses.</p>
+          <h3 className="font-medium text-gray-900 mb-2">This conversation is closed</h3>
+          <p className="text-gray-600 max-w-md mx-auto">
+            The founder has closed this thread and it is no longer accepting new responses.
+          </p>
         </div>
       )}
       
       {/* Back to Project Link */}
-      <div className="text-center mb-12">
+      <div className="text-center">
         <Link
           to={`/${projectSlug}`}
-          className="text-gray-500 hover:text-gray-900 inline-flex items-center"
+          className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Back to all issues
+          Back to {project.name}
         </Link>
       </div>
+      
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full mx-auto p-6 shadow-xl animate-scale-in">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            <h3 className="text-xl font-medium text-gray-900 mb-2 text-center">Delete this thread?</h3>
+            <p className="text-gray-600 mb-6 text-center">
+              This will permanently delete this thread and all responses. This cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteThread}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-medium shadow-sm disabled:opacity-70"
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Thread'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

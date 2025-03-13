@@ -412,7 +412,7 @@ const ProjectPage = () => {
     <div className="max-w-4xl mx-auto px-4">
       {/* Welcome Banner for First-time Visitors */}
       {isFirstVisit && (
-        <div className="bg-blue-50 border border-blue-100 rounded-md p-4 mb-6 mt-4 relative animate-fadeIn">
+        <div className="bg-blue-50 border border-blue-100 rounded-md p-5 mb-6 mt-4 relative animate-fadeIn">
           <button 
             onClick={dismissWelcomeBanner} 
             className="absolute top-2 right-2 text-blue-400 hover:text-blue-600 cursor-pointer"
@@ -430,9 +430,9 @@ const ProjectPage = () => {
               </svg>
             </div>
             <div>
-              <h3 className="text-base font-medium text-blue-800 mb-1">Get direct help from the founder!</h3>
+              <h3 className="text-base font-medium text-blue-800 mb-1">Direct Line to the Founder!</h3>
               <p className="text-sm text-blue-700">
-                Ask questions or report issues and get answers directly from the founder of {project.name}. No account needed.
+                Need help with {project.name}? Ask questions and get personalized answers directly from the founder themselves. No sign-up required.
               </p>
             </div>
           </div>
@@ -440,7 +440,7 @@ const ProjectPage = () => {
       )}
 
       {/* Project Header */}
-      <div className="mb-6 pt-6">
+      <div className="mb-8 pt-6">
         <div className="flex items-start space-x-4">
           {project.logoUrl ? (
             <img 
@@ -479,53 +479,50 @@ const ProjectPage = () => {
                 </a>
               )}
               
-              {/* Twitter/X Link */}
-              {project.twitterUrl && (
-                <a 
-                  href={project.twitterUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-gray-500 hover:text-gray-700 flex items-center text-sm"
-                  aria-label="Twitter/X profile"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                  </svg>
-                  X
-                </a>
-              )}
-              
-              {/* LinkedIn Link */}
-              {project.linkedinUrl && (
-                <a 
-                  href={project.linkedinUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-gray-500 hover:text-gray-700 flex items-center text-sm"
-                  aria-label="LinkedIn profile"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/>
-                  </svg>
-                  LinkedIn
-                </a>
-              )}
-              
-              {/* GitHub Link */}
-              {project.githubUrl && (
-                <a 
-                  href={project.githubUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-gray-500 hover:text-gray-700 flex items-center text-sm"
-                  aria-label="GitHub profile"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                  </svg>
-                  GitHub
-                </a>
-              )}
+              {/* Social links combined into a simpler format */}
+              <div className="flex items-center gap-3">
+                {project.twitterUrl && (
+                  <a 
+                    href={project.twitterUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-gray-500 hover:text-gray-700"
+                    aria-label="Twitter/X profile"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                  </a>
+                )}
+                
+                {project.linkedinUrl && (
+                  <a 
+                    href={project.linkedinUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-gray-500 hover:text-gray-700"
+                    aria-label="LinkedIn profile"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/>
+                    </svg>
+                  </a>
+                )}
+                
+                {project.githubUrl && (
+                  <a 
+                    href={project.githubUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-gray-500 hover:text-gray-700"
+                    aria-label="GitHub profile"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                  </a>
+                )}
+              </div>
               
               <div className="flex items-center text-sm text-gray-500">
                 <span className="inline-flex items-center mr-3">
@@ -546,57 +543,28 @@ const ProjectPage = () => {
         </div>
       </div>
 
-      {/* Search and Filter Bar - Simplified */}
-      <div className="flex flex-wrap gap-3 justify-between items-center mb-6">
-        <div className="w-full md:w-auto flex-1 max-w-md">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <input
-              type="text" 
-              placeholder="Search questions and issues"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 w-full py-2 px-4 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-sm"
-              aria-label="Search issues"
-            />
-          </div>
-        </div>
-        
-        <div className="flex flex-wrap gap-2">
-          <select 
-            value={filterTag} 
-            onChange={(e) => setFilterTag(e.target.value)}
-            className="py-2 px-3 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-sm bg-white cursor-pointer"
-            aria-label="Filter by category"
-          >
-            <option value="all">All categories</option>
-            {issueTags.map(tag => (
-              <option key={tag.value} value={tag.value}>{tag.label}</option>
-            ))}
-          </select>
-          
-          <button
-            onClick={() => setShowNewThreadForm(!showNewThreadForm)}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors flex items-center text-sm whitespace-nowrap cursor-pointer"
-            aria-label="Create new issue"
-          >
-            <svg className="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-            </svg>
-            I have an Issue
-          </button>
-        </div>
+      {/* Primary CTA - Prominent and focused */}
+      <div className="mb-8">
+        <button
+          onClick={() => setShowNewThreadForm(!showNewThreadForm)}
+          className="w-full px-5 py-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center text-base font-medium shadow-sm"
+          aria-label="Get help from founder"
+        >
+          <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+          </svg>
+          Ask the Founder for Help
+        </button>
+        <p className="text-center text-sm text-gray-500 mt-2">
+          Get a personal response directly from the creator of {project.name}
+        </p>
       </div>
 
-      {/* New Thread Form - Simplified */}
+      {/* New Thread Form - Enhanced clarity */}
       {showNewThreadForm && (
-        <div className="border border-gray-200 rounded-md p-6 mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-medium text-gray-900">Ask a question or report an issue</h3>
+        <div className="border border-gray-200 rounded-md p-6 mb-8 shadow-sm">
+          <div className="flex justify-between items-center mb-5">
+            <h3 className="text-lg font-medium text-gray-900">What can the founder help you with?</h3>
             <button 
               onClick={() => setShowNewThreadForm(false)}
               className="text-gray-400 hover:text-gray-600 cursor-pointer"
@@ -617,7 +585,7 @@ const ProjectPage = () => {
           <form onSubmit={handleNewThreadSubmit} className="space-y-4">
             <div>
               <label htmlFor="issue-title" className="block text-sm font-medium text-gray-700 mb-1">
-                Title
+                What's your question or issue?
               </label>
               <input
                 id="issue-title"
@@ -625,14 +593,14 @@ const ProjectPage = () => {
                 value={threadTitle}
                 onChange={(e) => setThreadTitle(e.target.value)}
                 required
-                placeholder="Brief summary of your question or issue"
+                placeholder="Summarize your question in a sentence"
                 className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             
             <div>
               <label htmlFor="issue-content" className="block text-sm font-medium text-gray-700 mb-1">
-                Description
+                Details
               </label>
               <textarea
                 id="issue-content"
@@ -640,14 +608,14 @@ const ProjectPage = () => {
                 onChange={(e) => setThreadContent(e.target.value)}
                 required
                 rows={5}
-                placeholder="Describe your question or issue in detail"
+                placeholder="Provide more details to help the founder understand your question or issue"
                 className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             
             <div>
               <label htmlFor="issue-tag" className="block text-sm font-medium text-gray-700 mb-1">
-                Category
+                Topic
               </label>
               <select
                 id="issue-tag"
@@ -656,24 +624,26 @@ const ProjectPage = () => {
                 required
                 className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
               >
-                <option value="" disabled>Select a category</option>
                 {issueTags.map(tag => (
                   <option key={tag.value} value={tag.value}>{tag.label}</option>
                 ))}
               </select>
             </div>
             
-            <div className="pt-2">
+            <div className="pt-3">
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
               >
-                {submitting ? 'Submitting...' : 'Submit'}
+                {submitting ? 'Sending to founder...' : 'Send to Founder'}
               </button>
-              <p className="text-center text-sm text-gray-500 mt-3">
-                The founder will be notified immediately and will respond to you as soon as they're available.
-              </p>
+              <div className="flex items-center justify-center text-sm text-gray-500 mt-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p>You'll receive a response by email</p>
+              </div>
             </div>
           </form>
         </div>
@@ -683,63 +653,66 @@ const ProjectPage = () => {
       {threads.length > 0 ? (
         <>
           {filteredThreads.length > 0 ? (
-            <div className="border border-gray-200 rounded-md divide-y divide-gray-200">
-              {filteredThreads.map((thread) => (
-                <Link 
-                  key={thread.id} 
-                  to={`/${projectSlug}/thread/${thread.id}`}
-                  className="block p-4 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-start">
-                    <div className="mr-3 mt-1">
-                      {thread.status === 'open' && (
-                        <span className="inline-flex items-center justify-center w-5 h-5 text-blue-600 bg-blue-100 rounded-full">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                          </svg>
-                        </span>
-                      )}
-                      {thread.status === 'resolved' && (
-                        <span className="inline-flex items-center justify-center w-5 h-5 text-green-600 bg-green-100 rounded-full">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <h3 className="text-base font-medium text-gray-900 truncate">{thread.title}</h3>
-                        {getTagBadge(thread.tag)}
-                      </div>
-                      
-                      <div className="flex flex-wrap items-center text-xs text-gray-500">
-                        <span className="truncate">#{thread.id.substring(0, 6)} opened {formatRelativeTime(thread.createdAt)} by {thread.authorName}</span>
-                        {!currentUser && thread.anonymousId === getAnonymousUserId() && (
-                          <span className="ml-2 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-md">You</span>
-                        )}
-                        {(thread.responseCount || 0) > 0 && (
-                          <span className="ml-4 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            <div>
+              <h2 className="text-lg font-medium text-gray-800 mb-3">Previous Questions</h2>
+              <div className="border border-gray-200 rounded-md divide-y divide-gray-200">
+                {filteredThreads.map((thread) => (
+                  <Link 
+                    key={thread.id} 
+                    to={`/${projectSlug}/thread/${thread.id}`}
+                    className="block p-4 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-start">
+                      <div className="mr-3 mt-1">
+                        {thread.status === 'open' && (
+                          <span className="inline-flex items-center justify-center w-5 h-5 text-blue-600 bg-blue-100 rounded-full">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                             </svg>
-                            {thread.responseCount}
+                          </span>
+                        )}
+                        {thread.status === 'resolved' && (
+                          <span className="inline-flex items-center justify-center w-5 h-5 text-green-600 bg-green-100 rounded-full">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
                           </span>
                         )}
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <h3 className="text-base font-medium text-gray-900 truncate">{thread.title}</h3>
+                          {getTagBadge(thread.tag)}
+                        </div>
+                        
+                        <div className="flex flex-wrap items-center text-xs text-gray-500">
+                          <span>Asked {formatRelativeTime(thread.createdAt)}</span>
+                          {!currentUser && thread.anonymousId === getAnonymousUserId() && (
+                            <span className="ml-2 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-md">You</span>
+                          )}
+                          {(thread.responseCount || 0) > 0 && (
+                            <span className="ml-4 flex items-center">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                              </svg>
+                              {thread.responseCount}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))}
+              </div>
             </div>
           ) : (
-            <div className="bg-gray-50 border border-gray-200 rounded-md p-8 text-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="bg-gray-50 border border-gray-200 rounded-md p-6 text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <h3 className="text-base font-medium text-gray-900 mb-2">No matching issues found</h3>
-              <p className="text-gray-600 text-sm mb-4">
-                Try adjusting your search or filter to find what you're looking for.
+              <h3 className="text-base font-medium text-gray-900 mb-1">No results found</h3>
+              <p className="text-gray-600 text-sm mb-2">
+                Looks like there are no matching questions.
               </p>
               <button
                 onClick={() => {
@@ -747,67 +720,66 @@ const ProjectPage = () => {
                   setFilterTag('all');
                   setSearchQuery('');
                 }}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors text-sm"
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors text-sm mt-1"
               >
-                Clear filters
+                Reset
               </button>
             </div>
           )}
         </>
       ) : (
-        <div className="border border-gray-200 rounded-md p-8 text-center">
-          <div className="flex justify-center mb-6">
+        <div className="border border-gray-200 rounded-md p-6 text-center">
+          <div className="flex justify-center mb-4">
             <div className="relative">
-              <div className="absolute -right-1 -top-1 bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <div className="absolute -right-1 -top-1 bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                   <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Get direct help from the founder</h3>
-          <p className="text-gray-600 text-sm mb-3 max-w-md mx-auto">
-            Be the first to report an issue or ask a question. The founder will personally respond to your message.
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Be the first to ask a question</h3>
+          <p className="text-gray-600 text-sm mb-4 max-w-md mx-auto">
+            Get a personal response from the creator of {project.name}.
           </p>
           <button
             onClick={() => setShowNewThreadForm(true)}
-            className="px-4 py-2.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors inline-flex items-center text-sm font-medium"
+            className="px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors inline-flex items-center text-sm font-medium shadow-sm"
           >
-            <svg className="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+            <svg className="h-4 w-4 mr-1.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
             </svg>
-            New Issue
+            Ask a Question
           </button>
-          <p className="text-gray-500 text-xs mt-4">
-            No account required — all issues are public
+          <p className="text-gray-500 text-xs mt-3">
+            No account needed — responses sent by email
           </p>
         </div>
       )}
 
-      {/* Confirmation Modal */}
+      {/* Confirmation Modal - Simplified */}
       {showConfirmationModal && (
         <div className={`fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 px-4 ${isClosingModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
           <div className={`bg-white rounded-lg max-w-md w-full p-6 shadow-lg ${isClosingModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
             <div className="text-center mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-green-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-green-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <h3 className="text-xl font-medium text-gray-900">Issue Submitted</h3>
+              <h3 className="text-xl font-medium text-gray-900">Question Sent!</h3>
             </div>
             
             <p className="text-gray-600 mb-6 text-center">
-              We've notified the founder about your issue "<span className="font-medium">{submittedThreadTitle}</span>". 
-              You'll receive a response as soon as they're available.
+              The founder of {project.name} will respond to your question soon.
             </p>
             
             <div className="text-center">
               <button
                 onClick={closeModalWithAnimation}
-                className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors text-sm cursor-pointer"
+                className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-base font-medium cursor-pointer shadow-sm"
               >
                 Got It
               </button>
