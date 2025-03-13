@@ -63,7 +63,6 @@ const ProjectPage = () => {
   
   // Confirmation modal state
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
-  const [submittedThreadTitle, setSubmittedThreadTitle] = useState('');
   const [isClosingModal, setIsClosingModal] = useState(false);
   
   // Filtering options
@@ -294,9 +293,6 @@ const ProjectPage = () => {
       await updateDoc(projectRef, {
         totalIssues: increment(1)
       });
-      
-      // Store the title for the confirmation message
-      setSubmittedThreadTitle(threadTitle);
       
       // Send email notification to the project owner
       const baseUrl = window.location.origin;
