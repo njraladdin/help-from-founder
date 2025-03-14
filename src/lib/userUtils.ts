@@ -53,4 +53,12 @@ export const getAnonymousUserName = (): string => {
   }
   
   return userName;
+};
+
+/**
+ * Clears the anonymous user data after transferring to an authenticated user
+ */
+export const clearAnonymousUserData = (): void => {
+  localStorage.removeItem(ANONYMOUS_USER_ID_KEY);
+  localStorage.removeItem(ANONYMOUS_USER_NAME_KEY);
 }; 

@@ -18,7 +18,7 @@ service cloud.firestore {
       // Only authenticated users can create projects
       allow create: if request.auth != null;
       // Allow anyone to update just the totalIssues field
-      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalIssues']) ||
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalIssues', 'solvedIssues']) ||
                      // Only the project owner can update other fields
                      (request.auth != null && request.auth.uid == resource.data.ownerId);
       // Only the project owner can delete projects
@@ -29,16 +29,11 @@ service cloud.firestore {
     match /threads/{threadId} {
       // Anyone can read threads
       allow read: if true;
-      // Anyone can create threads
+      // Anyone can create threads (authenticated or anonymous)
       allow create: if true;
-      // Allow updating threads for response count and status changes
-      // This allows both the thread author and project owner to update threads
-      allow update: if request.auth != null && 
-          (request.auth.uid == resource.data.authorId || 
-           getProject(resource.data.projectId).ownerId == request.auth.uid) ||
-          // Also allow unauthenticated users to update response count
-          (!request.auth && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['responseCount']));
-      // Only the thread author or project owner can delete threads
+      // Anyone can update threads (for response count)
+      allow update: if true;
+      // Only the project owner can delete threads
       allow delete: if request.auth != null && 
           (request.auth.uid == resource.data.authorId || 
            getProject(resource.data.projectId).ownerId == request.auth.uid);
@@ -48,15 +43,24 @@ service cloud.firestore {
     match /responses/{responseId} {
       // Anyone can read responses
       allow read: if true;
-      // Anyone can create responses
+      // Anyone can create responses (authenticated or anonymous)
       allow create: if true;
-      // Only the response author can update or delete their responses
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.authorId;
+      // Anyone can update their own responses
+      allow update: if true;
+      // Only the response author or project owner can delete responses
+      allow delete: if request.auth != null && 
+          (request.auth.uid == resource.data.authorId || 
+           getProject(getThread(resource.data.threadId).projectId).ownerId == request.auth.uid);
     }
     
     // Helper function to get a project document
     function getProject(projectId) {
       return get(/databases/$(database)/documents/projects/$(projectId)).data;
+    }
+    
+    // Helper function to get a thread document
+    function getThread(threadId) {
+      return get(/databases/$(database)/documents/threads/$(threadId)).data;
     }
   }
 } 

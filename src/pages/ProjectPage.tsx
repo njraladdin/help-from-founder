@@ -30,6 +30,7 @@ interface Thread {
   status: 'open' | 'resolved';
   createdAt: Date;
   authorName: string;
+  authorId?: string;
   tag: string;
   responseCount?: number;
   anonymousId?: string;
@@ -226,6 +227,7 @@ const ProjectPage = () => {
           status: data.status,
           createdAt: data.createdAt?.toDate() || new Date(),
           authorName: data.authorName,
+          authorId: data.authorId,
           tag: data.tag || 'question',
           responseCount: data.responseCount || 0, // Use stored count or default to 0
           anonymousId: data.anonymousId,
@@ -514,7 +516,7 @@ const ProjectPage = () => {
                     aria-label="GitHub profile"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.239 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                     </svg>
                   </a>
                 )}
@@ -634,12 +636,14 @@ const ProjectPage = () => {
               >
                 {submitting ? 'Sending to founder...' : 'Send to Founder'}
               </button>
-              <div className="flex items-center justify-center text-sm text-gray-500 mt-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p>You'll receive a response by email</p>
-              </div>
+              {currentUser && (
+                <div className="flex items-center justify-center text-sm text-gray-500 mt-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p>You'll receive a response by email</p>
+                </div>
+              )}
             </div>
           </form>
         </div>
@@ -683,7 +687,8 @@ const ProjectPage = () => {
                         
                         <div className="flex flex-wrap items-center text-xs text-gray-500">
                           <span>Asked {formatRelativeTime(thread.createdAt)}</span>
-                          {!currentUser && thread.anonymousId === getAnonymousUserId() && (
+                          {((!currentUser && thread.anonymousId === getAnonymousUserId()) || 
+                            (currentUser && currentUser.uid === thread.authorId)) && (
                             <span className="ml-2 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-md">You</span>
                           )}
                           {(thread.responseCount || 0) > 0 && (
@@ -752,14 +757,14 @@ const ProjectPage = () => {
             Ask a Question
           </button>
           <p className="text-gray-500 text-xs mt-3">
-            No account needed — responses sent by email
+            No account needed to ask — create an account to receive email notifications
           </p>
         </div>
       )}
 
       {/* Confirmation Modal - Simplified */}
       {showConfirmationModal && (
-        <div className={`fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 px-4 ${isClosingModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
+        <div className={`fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 px-4 ${isClosingModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
           <div className={`bg-white rounded-lg max-w-md w-full p-6 shadow-lg ${isClosingModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
             <div className="text-center mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-green-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -772,10 +777,29 @@ const ProjectPage = () => {
               The founder of {project.name} will respond to your question soon.
             </p>
             
+            {!currentUser && (
+              <div className="bg-blue-50 border border-blue-100 rounded-md p-4 mb-5">
+                <h4 className="text-blue-800 font-medium mb-1 text-sm">Want to get notified?</h4>
+                <p className="text-blue-700 text-sm mb-3">
+                  Create an account to receive email notifications when the founder responds to your question.
+                </p>
+                <Link 
+                  to={`/register?redirect=${encodeURIComponent(`/${projectSlug}`)}`}
+                  className="inline-flex items-center text-sm px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+                  onClick={closeModalWithAnimation}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Create Account
+                </Link>
+              </div>
+            )}
+            
             <div className="text-center">
               <button
                 onClick={closeModalWithAnimation}
-                className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-base font-medium cursor-pointer shadow-sm"
+                className="px-6 py-3 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors text-base font-medium cursor-pointer shadow-sm"
               >
                 Got It
               </button>

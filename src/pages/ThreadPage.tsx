@@ -13,6 +13,7 @@ interface Thread {
   status: 'open' | 'resolved' | 'closed';
   createdAt: Date;
   authorName: string;
+  authorId?: string;
   projectId: string;
   tag: string;
   anonymousId?: string;
@@ -144,6 +145,7 @@ const ThreadPage = () => {
           status: threadData.status,
           createdAt: threadData.createdAt?.toDate() || new Date(),
           authorName: threadData.authorName,
+          authorId: threadData.authorId,
           projectId: threadData.projectId,
           tag: threadData.tag || 'question',
           anonymousId: threadData.anonymousId,
@@ -223,22 +225,41 @@ const ThreadPage = () => {
       
       const anonymousId = !currentUser ? getAnonymousUserId() : null;
       
-      // Create response document
-      await addDoc(collection(db, 'responses'), {
+      console.log('Creating response with:', {
         threadId: thread.id,
-        content: responseContent,
-        createdAt: serverTimestamp(),
-        authorName: authorName,
-        authorId: currentUser?.uid || null,
-        anonymousId: anonymousId, // Store anonymous ID for non-logged in users
-        isFounder,
+        authorName,
+        anonymousId,
+        isFounder
       });
       
-      // Increment response count in thread document
-      const threadRef = doc(db, 'threads', thread.id);
-      await updateDoc(threadRef, {
-        responseCount: increment(1)
-      });
+      try {
+        // Create response document
+        await addDoc(collection(db, 'responses'), {
+          threadId: thread.id,
+          content: responseContent,
+          createdAt: serverTimestamp(),
+          authorName: authorName,
+          authorId: currentUser?.uid || null,
+          anonymousId: anonymousId, // Store anonymous ID for non-logged in users
+          isFounder,
+        });
+      } catch (responseError) {
+        console.error('Error creating response document:', responseError);
+        setFormError(`Failed to create response: ${responseError instanceof Error ? responseError.message : 'Unknown error'}`);
+        setSubmitting(false);
+        return;
+      }
+      
+      try {
+        // Increment response count in thread document
+        const threadRef = doc(db, 'threads', thread.id);
+        await updateDoc(threadRef, {
+          responseCount: increment(1)
+        });
+      } catch (threadError) {
+        console.error('Error updating thread response count:', threadError);
+        // Continue anyway since the response was created
+      }
       
       // Send email notification to the project owner if the response is not from the founder
       if (!isFounder && project.ownerEmail) {
@@ -524,7 +545,8 @@ const ThreadPage = () => {
             <span className="font-medium text-gray-900">{thread.authorName}</span>
             <span className="mx-2">·</span>
             <span>{formatRelativeTime(thread.createdAt)}</span>
-            {!currentUser && thread.anonymousId === getAnonymousUserId() && (
+            {((!currentUser && thread.anonymousId === getAnonymousUserId()) || 
+              (currentUser && currentUser.uid === thread.authorId)) && (
               <span className="ml-2 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-md">You</span>
             )}
           </div>
@@ -558,7 +580,8 @@ const ThreadPage = () => {
                           Founder
                         </span>
                       )}
-                      {!currentUser && response.anonymousId === getAnonymousUserId() && (
+                      {((!currentUser && response.anonymousId === getAnonymousUserId()) || 
+                        (currentUser && currentUser.uid === response.authorId)) && (
                         <span className="ml-2 bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full">
                           You
                         </span>
@@ -590,6 +613,33 @@ const ThreadPage = () => {
           </div>
         )}
       </div>
+      
+      {/* Sign up prompt for anonymous users who created the thread or responded in it */}
+      {!currentUser && thread.status !== 'closed' && 
+        (thread.anonymousId === getAnonymousUserId() || 
+         responses.some(response => response.anonymousId === getAnonymousUserId())) && (
+        <div className="border border-blue-200 rounded-lg p-5 mb-8 bg-blue-50">
+          <div className="flex items-start">
+            <div className="bg-blue-100 text-blue-600 p-2 rounded-full mr-4 flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base font-medium text-blue-800 mb-1">Get notified about this thread</h3>
+              <p className="text-sm text-blue-700 mb-3">
+                Create an account to receive email notifications when the founder responds to this thread.
+              </p>
+              <Link
+                to={`/register?redirect=${encodeURIComponent(`/${projectSlug}/thread/${threadId}`)}`}
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Create an account
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Add Response Form - Only visible if thread is not closed */}
       {thread.status !== 'closed' ? (

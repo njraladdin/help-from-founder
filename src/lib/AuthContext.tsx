@@ -13,6 +13,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
+import { transferAnonymousUserData } from './userDataTransfer';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -87,6 +88,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             photoURL: user.photoURL,
           });
           console.log('User document created for:', user.displayName);
+          
+          // Transfer anonymous data to the newly registered user
+          const transferResult = await transferAnonymousUserData(user.uid);
+          console.log('Data transfer result:', transferResult.message);
         } else {
           console.log('User already exists:', user.displayName);
         }
