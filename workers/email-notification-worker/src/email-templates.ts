@@ -1,6 +1,12 @@
 // Define notification types
 export type NotificationType = 'new_issue' | 'new_response';
 
+// Recipient interface
+export interface Recipient {
+  email: string;
+  name?: string;
+}
+
 // Base notification request interface
 export interface BaseNotificationRequest {
   type: NotificationType;
@@ -8,7 +14,7 @@ export interface BaseNotificationRequest {
   projectName: string;
   issueId: string;
   issueTitle: string;
-  founderEmail: string;
+  recipients: Recipient[];
   userName?: string; // Optional submitter name
   createdAt?: string; // Optional timestamp
   issueUrl?: string; // Optional URL to the issue
@@ -42,9 +48,12 @@ export function createHtmlTemplate(notification: EmailNotificationRequest): stri
       return createIssueNotificationTemplate(notification);
     case 'new_response':
       return createResponseNotificationTemplate(notification);
-    default:
+    default: {
       // This should never happen due to TypeScript's exhaustive checking
-      throw new Error(`Unknown notification type: ${notification.type}`);
+      // Using type assertion with unknown instead of any
+      const unknownNotification = notification as unknown as { type: string };
+      throw new Error(`Unknown notification type: ${unknownNotification.type}`);
+    }
   }
 }
 
@@ -60,9 +69,12 @@ export function createPlainTextTemplate(notification: EmailNotificationRequest):
       return createIssueTextTemplate(notification);
     case 'new_response':
       return createResponseTextTemplate(notification);
-    default:
+    default: {
       // This should never happen due to TypeScript's exhaustive checking
-      throw new Error(`Unknown notification type: ${notification.type}`);
+      // Using type assertion with unknown instead of any
+      const unknownNotification = notification as unknown as { type: string };
+      throw new Error(`Unknown notification type: ${unknownNotification.type}`);
+    }
   }
 }
 
@@ -161,7 +173,7 @@ function createResponseNotificationTemplate(notification: ResponseNotificationRe
         </div>
         <div class="content">
           <p>Hello,</p>
-          <p>A new response has been posted to an issue in your project <strong>${notification.projectName}</strong> by ${notification.responseAuthor} on ${date}.</p>
+          <p>A new response has been posted to an issue in the project <strong>${notification.projectName}</strong> by ${notification.responseAuthor} on ${date}.</p>
           
           <h3>Response Details:</h3>
           <p><strong>Issue:</strong> ${notification.issueTitle}</p>

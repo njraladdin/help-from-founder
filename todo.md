@@ -3,8 +3,9 @@
 
 - add email notification to founders, done 
 - simplfy issue opening UI, done 
+- norma users signup and get their posts transferred, done 
 
-- normal users can sign up to receive an email notification when the founder responds, and transfer their anon posts, done 
+- signed up users receive email when someone interacts in same post  
 
 - add website notification for issue interactions for normal users and founders (to know that people interacted with you)
 - add latest issues interacted with section in the dashboard 

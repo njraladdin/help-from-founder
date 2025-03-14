@@ -7,33 +7,77 @@
 
 const https = require('https');
 
-// Specific recipient email
-const recipientEmail = 'aladynjr@gmail.com';
+// Test recipient emails
+const primaryEmail = 'aladynjr@gmail.com';
+const secondaryEmail = 'aladdintemp61@gmail.com'; // Using email alias for testing
+const thirdEmail = 'jihednajjar2022@gmail.com'; // Third test recipient
 
 // Worker URL
 const WORKER_URL = 'https://email-notification-worker.aladynjr.workers.dev';
 const ENDPOINT = '/api/send-email'; // This endpoint is defined in the wrangler.jsonc
 
-// Test notification data
+// Test notification data - this simulates a new issue with multiple recipients
 const testData = {
   type: 'new_issue',
   projectId: 'test-project',
   projectName: 'Test Project',
   issueId: 'test-issue-' + Date.now(),
   issueTitle: 'Test Email from Worker',
-  issueContent: 'This is a test issue created to verify the email notification worker is functioning correctly.\n\nIf you received this email, the worker is working as expected!',
-  founderEmail: recipientEmail,
+  issueContent: 'This is a test issue created to verify the email notification worker is functioning correctly.\n\nIf you received this email, the worker is working as expected!\n\nEach recipient now receives their own individual email to protect privacy.',
+  recipients: [
+    {
+      email: primaryEmail,
+      name: 'Project Owner'
+    },
+    {
+      email: secondaryEmail,
+      name: 'Thread Participant'
+    },
+    {
+      email: thirdEmail,
+      name: 'Another Participant'
+    }
+  ],
   userName: 'Test Script',
   createdAt: new Date().toISOString(),
   issueUrl: 'https://helpfromfounder.com/test-project/test-issue'
 };
 
-// Prepare request data
-const data = JSON.stringify(testData);
+// Test data for a response notification to all thread participants
+const responseTestData = {
+  type: 'new_response',
+  projectId: 'test-project',
+  projectName: 'Test Project',
+  issueId: 'test-issue-' + Date.now(),
+  issueTitle: 'Test Thread for Response',
+  responseContent: 'This is a test response to verify the multi-recipient email notifications are working correctly.\n\nIf you received this email, the worker is correctly handling private notifications to all thread participants!\n\nRecipients cannot see each other\'s email addresses now.',
+  responseAuthor: 'Test Responder',
+  recipients: [
+    {
+      email: primaryEmail,
+      name: 'Project Owner'
+    },
+    {
+      email: secondaryEmail, 
+      name: 'Thread Participant'
+    },
+    {
+      email: thirdEmail,
+      name: 'Another Participant'
+    }
+  ],
+  createdAt: new Date().toISOString(),
+  issueUrl: 'https://helpfromfounder.com/test-project/test-issue'
+};
 
-console.log(`Sending test email to: ${recipientEmail}`);
+// Choose which test to run (uncomment one)
+// const data = JSON.stringify(testData);  // Test new issue notification
+const data = JSON.stringify(responseTestData);  // Test response notification
+
+console.log('PRIVACY UPDATE: Emails are now sent individually to each recipient to protect privacy');
+console.log(`Sending test email to multiple recipients: ${primaryEmail}, ${secondaryEmail}, and ${thirdEmail}`);
 console.log(`Worker URL: ${WORKER_URL}${ENDPOINT}`);
-console.log('Request body:', JSON.stringify(testData, null, 2));
+console.log('Request body:', JSON.stringify(JSON.parse(data), null, 2));
 
 // Parse URL to get hostname
 const url = new URL(WORKER_URL);
@@ -72,7 +116,7 @@ const req = https.request(options, (res) => {
         console.log(JSON.stringify(parsedData, null, 2));
         
         if (parsedData.success) {
-          console.log('\n✅ Test successful! Email sent to aladynjr@gmail.com');
+          console.log('\n✅ Test successful! Email sent to multiple recipients');
         } else {
           console.log('\n❌ Test failed. See error details above.');
         }

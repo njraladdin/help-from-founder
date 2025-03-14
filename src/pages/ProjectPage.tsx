@@ -309,7 +309,12 @@ const ProjectPage = () => {
           issueId: threadRef.id,
           issueTitle: threadTitle,
           issueContent: threadContent,
-          founderEmail: project.ownerEmail,
+          recipients: [
+            {
+              email: project.ownerEmail,
+              name: 'Project Owner'
+            }
+          ],
           userName: authorName,
           createdAt: new Date().toISOString(),
           issueUrl: issueUrl

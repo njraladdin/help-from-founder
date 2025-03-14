@@ -4,7 +4,7 @@ import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp
 import { db } from '../lib/firebase';
 import { useAuth } from '../lib/AuthContext';
 import { getAnonymousUserId, getAnonymousUserName } from '../lib/userUtils';
-import { sendNewIssueNotification } from '../lib/emailService';
+import { sendNewIssueNotification, getThreadParticipants } from '../lib/emailService';
 
 interface Thread {
   id: string;
@@ -261,13 +261,38 @@ const ThreadPage = () => {
         // Continue anyway since the response was created
       }
       
-      // Send email notification to the project owner if the response is not from the founder
-      if (!isFounder && project.ownerEmail) {
-        // Create the issue URL
-        const baseUrl = window.location.origin;
-        const issueUrl = `${baseUrl}/${projectSlug}/thread/${threadId}`;
+      // Create the issue URL
+      const baseUrl = window.location.origin;
+      const issueUrl = `${baseUrl}/${projectSlug}/thread/${threadId}`;
+      
+      // Get all thread participants who should receive a notification
+      const participants = await getThreadParticipants(thread.id, currentUser?.uid || null);
+      
+      // Check if we should send email notifications
+      let shouldSendEmails = true;
+      
+      // Check if the last response was from the same user and less than 1 hour ago
+      if (responses.length > 0) {
+        const lastResponse = responses[responses.length - 1];
+        const now = new Date();
+        const oneHourInMs = 60 * 60 * 1000; // 1 hour in milliseconds
+        const isWithinLastHour = now.getTime() - lastResponse.createdAt.getTime() < oneHourInMs;
         
-        // Send notification
+        // Check if last response was from the same user (authenticated or anonymous)
+        const isSameAuthor = 
+          (currentUser?.uid && lastResponse.authorId === currentUser.uid) || 
+          (!currentUser && lastResponse.anonymousId === getAnonymousUserId());
+        
+        // Don't send emails if both conditions are met
+        if (isWithinLastHour && isSameAuthor) {
+          console.log('Skipping email notification: Same user responded less than 1 hour ago');
+          shouldSendEmails = false;
+        }
+      }
+      
+      // Only send notifications if there are recipients and we should send emails
+      if (participants.length > 0 && shouldSendEmails) {
+        // Send notification to all participants
         sendNewIssueNotification({
           type: 'new_response',
           projectId: project.id,
@@ -276,7 +301,7 @@ const ThreadPage = () => {
           issueTitle: thread.title,
           responseContent: responseContent,
           responseAuthor: authorName,
-          founderEmail: project.ownerEmail,
+          recipients: participants,
           createdAt: new Date().toISOString(),
           issueUrl: issueUrl
         }).catch(error => {

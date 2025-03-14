@@ -22,7 +22,6 @@ import {
 // Import SendGrid client instead of SendPulse
 import { 
 	EmailOptions, 
-	SendGridResponse, 
 	sendEmail 
 } from './sendgrid-client';
 
@@ -98,7 +97,7 @@ app.post('/api/send-email', async (c) => {
 		const notification = data as EmailNotificationRequest;
 		
 		// Validate required fields based on notification type
-		const baseRequiredFields = ['projectId', 'projectName', 'issueId', 'issueTitle', 'founderEmail'];
+		const baseRequiredFields = ['projectId', 'projectName', 'issueId', 'issueTitle', 'recipients'];
 		
 		// Check base required fields
 		for (const field of baseRequiredFields) {
@@ -106,6 +105,24 @@ app.post('/api/send-email', async (c) => {
 				return c.json({
 					success: false,
 					message: `Missing required field: ${field}`
+				}, 400);
+			}
+		}
+		
+		// Validate recipients array
+		if (!Array.isArray(notification.recipients) || notification.recipients.length === 0) {
+			return c.json({
+				success: false,
+				message: 'Recipients must be a non-empty array'
+			}, 400);
+		}
+		
+		// Validate recipient emails
+		for (const recipient of notification.recipients) {
+			if (!recipient.email) {
+				return c.json({
+					success: false,
+					message: 'Each recipient must have an email address'
 				}, 400);
 			}
 		}
@@ -135,42 +152,66 @@ app.post('/api/send-email', async (c) => {
 			subject = `New Response on Issue: ${notification.issueTitle} - ${notification.projectName}`;
 		}
 		
-		// Create email options
-		const emailOptions: EmailOptions = {
-			html: createHtmlTemplate(notification),
-			text: createPlainTextTemplate(notification),
-			subject: subject,
-			from: {
-				name: "Help From Founder",
-				email: "contact@helpfromfounder.space" // Using verified sender email
-			},
-			to: [
-				{
-					name: "Project Owner",
-					email: notification.founderEmail
-				}
-			]
-		};
+		// Create HTML and text content once
+		const htmlContent = createHtmlTemplate(notification);
+		const textContent = createPlainTextTemplate(notification);
 		
-		try {
-			// Send the email using SendGrid
-			await sendEmail(
-				c.env.SENDGRID_API_KEY,
-				emailOptions
-			);
-			
+		// Track any errors
+		const errors: Array<{recipient: string; error: string}> = [];
+		
+		// Send individual emails to each recipient to preserve privacy
+		const emailPromises = notification.recipients.map(async (recipient) => {
+			try {
+				// Create individual email options for this recipient
+				const emailOptions: EmailOptions = {
+					html: htmlContent,
+					text: textContent,
+					subject: subject,
+					from: {
+						name: "Help From Founder",
+						email: "contact@helpfromfounder.space"
+					},
+					to: [{
+						name: recipient.name || "User",
+						email: recipient.email
+					}]
+				};
+				
+				// Send the email using SendGrid
+				await sendEmail(
+					c.env.SENDGRID_API_KEY as string,
+					emailOptions
+				);
+				
+				return { success: true, recipient: recipient.email };
+			} catch (error) {
+				// Record error but don't throw
+				const errorMessage = error instanceof Error 
+					? error.message || 'Unknown error' 
+					: String(error);
+				errors.push({ recipient: recipient.email, error: errorMessage });
+				return { success: false, recipient: recipient.email, error: errorMessage };
+			}
+		});
+		
+		// Wait for all emails to be sent
+		const results = await Promise.all(emailPromises);
+		const successCount = results.filter(r => r.success).length;
+		
+		// If all emails were sent successfully
+		if (successCount === notification.recipients.length) {
 			return c.json({
 				success: true,
-				message: 'Email notification sent successfully'
+				message: `Email notifications sent successfully to ${successCount} recipients`
 			});
-		} catch (error) {
-			const sendGridError = error as SendGridResponse;
-			return c.json({
-				success: false,
-				message: 'Failed to send email notification',
-				error: sendGridError.message || 'Unknown error'
-			}, 500);
 		}
+		
+		// If some emails failed
+		return c.json({
+			success: successCount > 0,
+			message: `Sent ${successCount} of ${notification.recipients.length} notifications`,
+			errors: errors
+		}, errors.length === notification.recipients.length ? 500 : 207);
 		
 	} catch (error) {
 		console.error('Error sending email:', error);
