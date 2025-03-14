@@ -10,5 +10,5 @@
 - add list of project founders 
 - add founder active status nad last active time 
 
-- show google account image 
-- ability to change username 
+
+- ability to change username, done 

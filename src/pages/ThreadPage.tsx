@@ -5,6 +5,7 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../lib/AuthContext';
 import { getAnonymousUserId, getAnonymousUserName } from '../lib/userUtils';
 import { sendNewIssueNotification, getThreadParticipants } from '../lib/emailService';
+import UserAvatar from '../components/UserAvatar';
 
 interface Thread {
   id: string;
@@ -48,32 +49,6 @@ const issueTags = [
   { value: 'help', label: 'Help', color: 'text-purple-600 bg-purple-50' },
   { value: 'documentation', label: 'Docs', color: 'text-yellow-600 bg-yellow-50' }
 ];
-
-// Function to generate consistent colors from strings (Apple-like)
-const stringToColor = (str: string): string => {
-  const colors = [
-    '#FF2D55', // Pink
-    '#5856D6', // Purple
-    '#007AFF', // Blue
-    '#34C759', // Green
-    '#FF9500', // Orange
-    '#AF52DE', // Purple
-    '#5AC8FA', // Light Blue
-    '#FF3B30', // Red
-    '#4CD964', // Green
-    '#FFCC00', // Yellow
-  ];
-  
-  // Simple hash function to get a consistent index
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  
-  // Use the hash to pick a color
-  const index = Math.abs(hash) % colors.length;
-  return colors[index];
-};
 
 const ThreadPage = () => {
   const { projectSlug, threadId } = useParams<{ projectSlug: string; threadId: string }>();
@@ -587,12 +562,11 @@ const ThreadPage = () => {
         <h1 className="text-2xl font-medium text-gray-900 mb-4">{thread.title}</h1>
         
         <div className="flex items-center mb-6">
-          <div 
-            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white font-medium text-sm overflow-hidden"
-            style={{ backgroundColor: stringToColor(thread.authorName) }}
-          >
-            {thread.authorName.charAt(0).toUpperCase()}
-          </div>
+          <UserAvatar 
+            name={thread.authorName}
+            size="sm"
+            className="flex-shrink-0"
+          />
           <div className="ml-2 text-sm text-gray-600">
             <span className="font-medium text-gray-900">{thread.authorName}</span>
             <span className="mx-2">·</span>
@@ -620,12 +594,11 @@ const ThreadPage = () => {
               >
                 <div className={`flex items-center justify-between px-4 py-3 ${response.isFounder ? 'bg-blue-50' : 'bg-gray-50'}`}>
                   <div className="flex items-center">
-                    <div 
-                      className={`w-8 h-8 rounded-full flex items-center justify-center mr-2 text-white font-medium text-sm overflow-hidden ${response.isFounder ? 'ring-2 ring-blue-500' : ''}`}
-                      style={{ backgroundColor: stringToColor(response.authorName) }}
-                    >
-                      {response.authorName.charAt(0).toUpperCase()}
-                    </div>
+                    <UserAvatar 
+                      name={response.authorName}
+                      size="sm"
+                      className={`mr-2 ${response.isFounder ? 'ring-2 ring-blue-500' : ''}`}
+                    />
                     <div>
                       <span className="font-medium text-gray-900">{response.authorName}</span>
                       {response.isFounder && (

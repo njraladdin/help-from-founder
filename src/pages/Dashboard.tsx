@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
-import { collection, query, where, getDocs, FirestoreError } from 'firebase/firestore';
+import { collection, query, where, getDocs, FirestoreError, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { updateProfile } from 'firebase/auth';
 import { db } from '../lib/firebase';
 import ProjectAvatar from '../components/ProjectAvatar';
+import UserAvatar from '../components/UserAvatar';
 
 interface Project {
   id: string;
@@ -25,6 +27,24 @@ const Dashboard = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // User profile state
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [displayName, setDisplayName] = useState('');
+  const [updatingProfile, setUpdatingProfile] = useState(false);
+  const [profileUpdateError, setProfileUpdateError] = useState<string | null>(null);
+  const [userCreationDate, setUserCreationDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    if (currentUser) {
+      setDisplayName(currentUser.displayName || '');
+      
+      // Extract user creation time
+      if (currentUser.metadata.creationTime) {
+        setUserCreationDate(new Date(currentUser.metadata.creationTime));
+      }
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -87,9 +107,134 @@ const Dashboard = () => {
     return Math.round((solvedIssues / totalIssues) * 100);
   };
 
+  // Handle display name update
+  const handleUpdateDisplayName = async (e: FormEvent) => {
+    e.preventDefault();
+    
+    if (!currentUser) return;
+    
+    if (!displayName.trim()) {
+      setProfileUpdateError('Display name cannot be empty');
+      return;
+    }
+    
+    try {
+      setUpdatingProfile(true);
+      setProfileUpdateError(null);
+      
+      // Update display name in Firebase Authentication
+      await updateProfile(currentUser, {
+        displayName: displayName.trim()
+      });
+      
+      // Also update the display name in Firestore if you store user data there
+      try {
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        
+        if (userDoc.exists()) {
+          await updateDoc(userDocRef, {
+            displayName: displayName.trim()
+          });
+        }
+      } catch (error) {
+        console.error('Error updating user document:', error);
+        // Continue anyway since the auth profile was updated
+      }
+      
+      setIsEditingName(false);
+    } catch (error) {
+      console.error('Error updating display name:', error);
+      setProfileUpdateError('Failed to update display name. Please try again.');
+    } finally {
+      setUpdatingProfile(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 pt-6">
+      {/* User Profile Section */}
+      {currentUser && (
+        <div className="border border-gray-200 rounded-md p-6 mb-8 mt-6">
+          <h2 className="text-xl font-medium text-gray-900 mb-4">Your Profile</h2>
+          
+          <div className="flex items-start space-x-4">
+            <UserAvatar 
+              name={currentUser.displayName || currentUser.email || 'User'} 
+              size="lg"
+            />
+            
+            <div className="flex-1">
+              {isEditingName ? (
+                <form onSubmit={handleUpdateDisplayName} className="mb-4">
+                  <div className="mb-3">
+                    <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-1">
+                      Display Name
+                    </label>
+                    <input
+                      type="text"
+                      id="displayName"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      className="w-full md:w-80 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter your name"
+                    />
+                    {profileUpdateError && (
+                      <p className="text-red-600 text-sm mt-1">{profileUpdateError}</p>
+                    )}
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      type="submit"
+                      disabled={updatingProfile}
+                      className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm disabled:opacity-50"
+                    >
+                      {updatingProfile ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditingName(false);
+                        setDisplayName(currentUser.displayName || '');
+                        setProfileUpdateError(null);
+                      }}
+                      className="px-3 py-1 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 transition-colors text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="mb-4">
+                  <div className="flex items-center">
+                    <h3 className="text-lg font-medium text-gray-900">
+                      {currentUser.displayName || 'No display name set'}
+                    </h3>
+                    <button
+                      onClick={() => setIsEditingName(true)}
+                      className="ml-2 text-blue-600 text-sm hover:text-blue-800"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                  <p className="text-gray-600 mt-1">{currentUser.email}</p>
+                </div>
+              )}
+              
+              <div className="text-sm text-gray-500">
+                Account created: {userCreationDate ? userCreationDate.toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                }) : 'Unknown'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Projects Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
         <h1 className="text-2xl font-medium text-gray-900 mb-4 md:mb-0">Your Projects</h1>
         <Link
           to="/dashboard/new-project"
