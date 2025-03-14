@@ -49,6 +49,32 @@ const issueTags = [
   { value: 'documentation', label: 'Docs', color: 'text-yellow-600 bg-yellow-50' }
 ];
 
+// Function to generate consistent colors from strings (Apple-like)
+const stringToColor = (str: string): string => {
+  const colors = [
+    '#FF2D55', // Pink
+    '#5856D6', // Purple
+    '#007AFF', // Blue
+    '#34C759', // Green
+    '#FF9500', // Orange
+    '#AF52DE', // Purple
+    '#5AC8FA', // Light Blue
+    '#FF3B30', // Red
+    '#4CD964', // Green
+    '#FFCC00', // Yellow
+  ];
+  
+  // Simple hash function to get a consistent index
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  
+  // Use the hash to pick a color
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+};
+
 const ThreadPage = () => {
   const { projectSlug, threadId } = useParams<{ projectSlug: string; threadId: string }>();
   const [thread, setThread] = useState<Thread | null>(null);
@@ -561,10 +587,11 @@ const ThreadPage = () => {
         <h1 className="text-2xl font-medium text-gray-900 mb-4">{thread.title}</h1>
         
         <div className="flex items-center mb-6">
-          <div className="bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
+          <div 
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white font-medium text-sm overflow-hidden"
+            style={{ backgroundColor: stringToColor(thread.authorName) }}
+          >
+            {thread.authorName.charAt(0).toUpperCase()}
           </div>
           <div className="ml-2 text-sm text-gray-600">
             <span className="font-medium text-gray-900">{thread.authorName}</span>
@@ -593,10 +620,11 @@ const ThreadPage = () => {
               >
                 <div className={`flex items-center justify-between px-4 py-3 ${response.isFounder ? 'bg-blue-50' : 'bg-gray-50'}`}>
                   <div className="flex items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-2 ${response.isFounder ? 'bg-blue-100' : 'bg-gray-200'}`}>
-                      <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${response.isFounder ? 'text-blue-600' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
+                    <div 
+                      className={`w-8 h-8 rounded-full flex items-center justify-center mr-2 text-white font-medium text-sm overflow-hidden ${response.isFounder ? 'ring-2 ring-blue-500' : ''}`}
+                      style={{ backgroundColor: stringToColor(response.authorName) }}
+                    >
+                      {response.authorName.charAt(0).toUpperCase()}
                     </div>
                     <div>
                       <span className="font-medium text-gray-900">{response.authorName}</span>
