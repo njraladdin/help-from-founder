@@ -11,7 +11,10 @@ interface Thread {
   id: string;
   title: string;
   content: string;
-  status: 'open' | 'resolved' | 'closed';
+  status: 'open' | 'closed';
+  closingReason?: 'solved' | 'feature backlog' | 'other';
+  closingNote?: string;
+  closedBy?: string;
   createdAt: Date;
   authorName: string;
   authorId?: string;
@@ -68,6 +71,11 @@ const ThreadPage = () => {
   // Add delete confirmation state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  // Add states for closing modal
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [closingReason, setClosingReason] = useState<'solved' | 'feature backlog' | 'other'>('solved');
+  const [closingNote, setClosingNote] = useState('');
+  const [isClosing, setIsClosing] = useState(false);
 
   useEffect(() => {
     const fetchThreadAndProject = async () => {
@@ -144,6 +152,9 @@ const ThreadPage = () => {
           title: threadData.title,
           content: threadData.content,
           status: threadData.status,
+          closingReason: threadData.closingReason,
+          closingNote: threadData.closingNote,
+          closedBy: threadData.closedBy,
           createdAt: threadData.createdAt?.toDate() || new Date(),
           authorName: threadData.authorName,
           authorId: threadData.authorId,
@@ -324,42 +335,84 @@ const ThreadPage = () => {
     }
   };
 
-  const handleUpdateStatus = async (newStatus: 'open' | 'resolved' | 'closed') => {
+  const handleUpdateStatus = async (newStatus: 'open' | 'closed') => {
     if (!thread || !project || !currentUser) return;
     
     // Only the founder can update the status
     if (currentUser.uid !== project.ownerId) return;
     
+    // If opening, just update status
+    if (newStatus === 'open') {
+      try {
+        const threadRef = doc(db, 'threads', thread.id);
+        await updateDoc(threadRef, {
+          status: newStatus,
+          updatedAt: serverTimestamp(),
+          // Clear closing reason, note, and closedBy when reopening
+          closingReason: null,
+          closingNote: null,
+          closedBy: null
+        });
+        
+        // Update local thread state
+        setThread({
+          ...thread,
+          status: newStatus,
+          closingReason: undefined,
+          closingNote: undefined,
+          closedBy: undefined
+        });
+      } catch (error) {
+        console.error('Error updating thread status:', error);
+      }
+    } else {
+      // For closing, show the modal instead of directly updating
+      setShowCloseModal(true);
+    }
+  };
+
+  const handleCloseThread = async () => {
+    if (!thread || !project || !currentUser) return;
+    
     try {
+      setIsClosing(true);
+      
+      // Get the founder's name
+      const founderName = currentUser.displayName || 'Founder';
+      
       const threadRef = doc(db, 'threads', thread.id);
       await updateDoc(threadRef, {
-        status: newStatus,
+        status: 'closed',
+        closingReason: closingReason,
+        closingNote: closingNote.trim() || null,
+        closedBy: founderName,
         updatedAt: serverTimestamp(),
       });
       
-      // Update the solvedIssues counter based on status change
-      const projectRef = doc(db, 'projects', thread.projectId);
-      
-      // If changing to 'resolved' from a different status, increment solvedIssues
-      if (newStatus === 'resolved' && thread.status !== 'resolved') {
+      // Update the solvedIssues counter if reason is 'solved'
+      if (closingReason === 'solved') {
+        const projectRef = doc(db, 'projects', thread.projectId);
         await updateDoc(projectRef, {
           solvedIssues: increment(1)
-        });
-      } 
-      // If changing from 'resolved' to a different status, decrement solvedIssues
-      else if (thread.status === 'resolved' && newStatus !== 'resolved') {
-        await updateDoc(projectRef, {
-          solvedIssues: increment(-1)
         });
       }
       
       // Update local thread state
       setThread({
         ...thread,
-        status: newStatus,
+        status: 'closed',
+        closingReason: closingReason,
+        closingNote: closingNote.trim() || undefined,
+        closedBy: founderName,
       });
+      
+      // Close the modal
+      setShowCloseModal(false);
+      setClosingNote('');
     } catch (error) {
-      console.error('Error updating thread status:', error);
+      console.error('Error closing thread:', error);
+    } finally {
+      setIsClosing(false);
     }
   };
 
@@ -399,7 +452,7 @@ const ThreadPage = () => {
       };
       
       // If thread was resolved, also decrement solvedIssues
-      if (thread.status === 'resolved') {
+      if (thread.status === 'closed' && thread.closingReason === 'solved') {
         updateData.solvedIssues = increment(-1);
       }
       
@@ -449,8 +502,6 @@ const ThreadPage = () => {
     switch (status) {
       case 'open':
         return <span className="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded-md">Open</span>;
-      case 'resolved':
-        return <span className="px-2 py-1 bg-green-50 text-green-600 text-xs rounded-md">Resolved</span>;
       case 'closed':
         return <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md">Closed</span>;
       default:
@@ -512,51 +563,9 @@ const ThreadPage = () => {
       <div className="border border-gray-200 rounded-lg p-6 mb-8 shadow-sm bg-white">
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center space-x-2">
-            {getStatusBadge(thread.status)}
+            {getStatusBadge(thread.status as string)}
             {getTagBadge(thread.tag)}
           </div>
-          
-          {/* Status Controls - Only visible to founders */}
-          {isFounder && thread.status !== 'closed' && (
-            <div className="dropdown relative">
-              <button className="text-gray-500 hover:text-gray-700 p-1 rounded-md hover:bg-gray-100 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
-                </svg>
-              </button>
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10 hidden">
-                {thread.status === 'open' && (
-                  <button
-                    onClick={() => handleUpdateStatus('resolved')}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    Mark as Resolved
-                  </button>
-                )}
-                {thread.status === 'resolved' && (
-                  <button
-                    onClick={() => handleUpdateStatus('open')}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    Reopen Issue
-                  </button>
-                )}
-                <button
-                  onClick={() => handleUpdateStatus('closed')}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  Close Issue
-                </button>
-                <div className="border-t border-gray-200 my-1"></div>
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          )}
         </div>
         
         <h1 className="text-2xl font-medium text-gray-900 mb-4">{thread.title}</h1>
@@ -626,6 +635,54 @@ const ThreadPage = () => {
                 </div>
               </div>
             ))}
+            
+            {/* Closing information */}
+            {(thread.status as string) === 'closed' && (
+              <div className="border border-gray-200 rounded-lg overflow-hidden border-l-4 border-l-gray-500">
+                <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
+                  <div className="flex items-center">
+                    <UserAvatar 
+                      name={thread.closedBy || 'Founder'}
+                      size="sm"
+                      className="mr-2 ring-2 ring-gray-500"
+                    />
+                    <div>
+                      <span className="font-medium text-gray-900">
+                        {thread.closedBy ? `Thread closed by ${thread.closedBy}` : 'Thread closed by founder'}
+                      </span>
+                      {thread.closingReason && (
+                        <span className="ml-2 bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded-full">
+                          {thread.closingReason === 'solved' 
+                            ? 'Solved' 
+                            : thread.closingReason === 'feature backlog' 
+                              ? 'Feature backlog' 
+                              : 'Other'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="px-4 py-4 bg-white">
+                  <div className="prose max-w-none text-gray-700">
+                    <p>
+                      {thread.closingReason === 'solved' && (
+                        <span className="font-medium">This issue has been solved.</span>
+                      )}
+                      {thread.closingReason === 'feature backlog' && (
+                        <span className="font-medium">This feature has been added to the backlog.</span>
+                      )}
+                      {(!thread.closingReason || thread.closingReason === 'other') && (
+                        <span className="font-medium">This issue has been closed.</span>
+                      )}
+                      {thread.closingNote && (
+                        <span className="block mt-2">{thread.closingNote}</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center mb-8">
@@ -641,7 +698,7 @@ const ThreadPage = () => {
       </div>
       
       {/* Sign up prompt for anonymous users who created the thread or responded in it */}
-      {!currentUser && thread.status !== 'closed' && 
+      {!currentUser && (thread.status as string) !== 'closed' && 
         (thread.anonymousId === getAnonymousUserId() || 
          responses.some(response => response.anonymousId === getAnonymousUserId())) && (
         <div className="border border-blue-200 rounded-lg p-5 mb-8 bg-blue-50">
@@ -667,8 +724,53 @@ const ThreadPage = () => {
         </div>
       )}
       
+      {/* Add Thread Actions Section for Founders */}
+      {isFounder && (
+        <div className="mb-6">
+          {(thread.status as string) === 'closed' ? (
+            <div className="flex items-center justify-between border border-gray-200 rounded-lg p-4 bg-gray-50">
+              <div className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <span className="text-gray-700 font-medium">Thread closed</span>
+              </div>
+              <button
+                onClick={() => handleUpdateStatus('open')}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium"
+              >
+                Reopen Thread
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between border border-gray-200 rounded-lg p-4 bg-gray-50">
+              <div className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-gray-700 font-medium">Founder Actions</span>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium"
+                >
+                  Delete Thread
+                </button>
+                <button
+                  onClick={() => handleUpdateStatus('closed')}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                >
+                  Close Thread
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      
       {/* Add Response Form - Only visible if thread is not closed */}
-      {thread.status !== 'closed' ? (
+      {(thread.status as string) !== 'closed' ? (
         <div className="border border-gray-200 rounded-lg p-6 mb-8 shadow-sm bg-white">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             {isFounder ? "Reply to this question" : "Add your response"}
@@ -763,6 +865,58 @@ const ThreadPage = () => {
                 disabled={isDeleting}
               >
                 {isDeleting ? 'Deleting...' : 'Delete Thread'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add this Close Issue Modal */}
+      {showCloseModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full mx-auto p-6 shadow-xl animate-scale-in">
+            <h3 className="text-xl font-medium text-gray-900 mb-4">Close This Issue</h3>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Reason for closing</label>
+              <select
+                value={closingReason}
+                onChange={(e) => setClosingReason(e.target.value as 'solved' | 'feature backlog' | 'other')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="solved">Issue solved</option>
+                <option value="feature backlog">Added to feature backlog</option>
+                <option value="other">Other reason</option>
+              </select>
+            </div>
+            
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Closing note (optional)
+              </label>
+              <textarea
+                value={closingNote}
+                onChange={(e) => setClosingNote(e.target.value)}
+                placeholder="Add any additional context about why this issue is being closed..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                rows={3}
+              />
+            </div>
+            
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowCloseModal(false)}
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+                disabled={isClosing}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCloseThread}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm disabled:opacity-70"
+                disabled={isClosing}
+              >
+                {isClosing ? 'Closing...' : 'Close Issue'}
               </button>
             </div>
           </div>

@@ -498,7 +498,7 @@ const Dashboard = () => {
                           </div>
                           <div className="text-xs font-medium rounded-full px-2 py-0.5 bg-gray-100">
                             <span className={(project.solvedIssues ?? 0) > 0 ? 'text-green-600' : 'text-gray-500'}>
-                              {getSolvedPercentage(project.totalIssues ?? 0, project.solvedIssues ?? 0)}% solved
+                              {getSolvedPercentage(project.totalIssues ?? 0, project.solvedIssues ?? 0)}% closed
                             </span>
                           </div>
                         </div>

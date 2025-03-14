@@ -9,4 +9,8 @@
 - add project founder to project page, done 
 - add founder active status nad last active time, done 
 
+- generate issue title and tag with ai, done
 
+- issue can be closed. then you can have a reason for closing (solved, feature added to backlog, other etc. )
+- fix closing / solving / deleting issues 
+- normal users can reopen issues and add more responses 
