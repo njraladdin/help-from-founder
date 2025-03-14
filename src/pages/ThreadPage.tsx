@@ -21,6 +21,8 @@ interface Thread {
   projectId: string;
   tag: string;
   anonymousId?: string;
+  closedAt?: Date;
+  updatedAt?: Date;
 }
 
 interface Response {
@@ -161,6 +163,8 @@ const ThreadPage = () => {
           projectId: threadData.projectId,
           tag: threadData.tag || 'question',
           anonymousId: threadData.anonymousId,
+          closedAt: threadData.closedAt?.toDate(),
+          updatedAt: threadData.updatedAt?.toDate(),
         };
         
         setThread(threadObj);
@@ -387,6 +391,7 @@ const ThreadPage = () => {
         closingNote: closingNote.trim() || null,
         closedBy: founderName,
         updatedAt: serverTimestamp(),
+        closedAt: serverTimestamp(),
       });
       
       // Update the solvedIssues counter if reason is 'solved'
@@ -398,12 +403,15 @@ const ThreadPage = () => {
       }
       
       // Update local thread state
+      const now = new Date();
       setThread({
         ...thread,
         status: 'closed',
         closingReason: closingReason,
         closingNote: closingNote.trim() || undefined,
         closedBy: founderName,
+        updatedAt: now,
+        closedAt: now,
       });
       
       // Close the modal
@@ -596,45 +604,92 @@ const ThreadPage = () => {
       <div className="mb-8">
         {responses.length > 0 ? (
           <div className="space-y-4">
-            {responses.map((response) => (
-              <div 
-                key={response.id} 
-                className={`border border-gray-200 rounded-lg overflow-hidden ${response.isFounder ? 'border-l-4 border-l-blue-500' : ''}`}
-              >
-                <div className={`flex items-center justify-between px-4 py-3 ${response.isFounder ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                  <div className="flex items-center">
-                    <UserAvatar 
-                      name={response.authorName}
-                      size="sm"
-                      className={`mr-2 ${response.isFounder ? 'ring-2 ring-blue-500' : ''}`}
-                    />
-                    <div>
-                      <span className="font-medium text-gray-900">{response.authorName}</span>
-                      {response.isFounder && (
-                        <span className="ml-2 bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">
-                          Founder
-                        </span>
-                      )}
-                      {((!currentUser && response.anonymousId === getAnonymousUserId()) || 
-                        (currentUser && currentUser.uid === response.authorId)) && (
-                        <span className="ml-2 bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full">
-                          You
-                        </span>
-                      )}
+            {/* Before closed responses */}
+            {(thread.status as string) === 'closed' && thread.closedAt ? (
+              // If thread is closed, split responses into before and after closing
+              responses
+                .filter(response => new Date(response.createdAt) < new Date(thread.closedAt as Date))
+                .map((response) => (
+                  <div 
+                    key={response.id} 
+                    className={`border border-gray-200 rounded-lg overflow-hidden ${response.isFounder ? 'border-l-4 border-l-blue-500' : ''}`}
+                  >
+                    <div className={`flex items-center justify-between px-4 py-3 ${response.isFounder ? 'bg-blue-50' : 'bg-gray-50'}`}>
+                      <div className="flex items-center">
+                        <UserAvatar 
+                          name={response.authorName}
+                          size="sm"
+                          className={`mr-2 ${response.isFounder ? 'ring-2 ring-blue-500' : ''}`}
+                        />
+                        <div>
+                          <span className="font-medium text-gray-900">{response.authorName}</span>
+                          {response.isFounder && (
+                            <span className="ml-2 bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">
+                              Founder
+                            </span>
+                          )}
+                          {((!currentUser && response.anonymousId === getAnonymousUserId()) || 
+                            (currentUser && currentUser.uid === response.authorId)) && (
+                            <span className="ml-2 bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full">
+                              You
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {formatRelativeTime(response.createdAt)}
+                      </div>
+                    </div>
+                    
+                    <div className="px-4 py-4 bg-white">
+                      <div className="prose max-w-none text-gray-700 whitespace-pre-line">
+                        {response.content}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    {formatRelativeTime(response.createdAt)}
+                ))
+            ) : (
+              // If thread is open, show all responses
+              responses.map((response) => (
+                <div 
+                  key={response.id} 
+                  className={`border border-gray-200 rounded-lg overflow-hidden ${response.isFounder ? 'border-l-4 border-l-blue-500' : ''}`}
+                >
+                  <div className={`flex items-center justify-between px-4 py-3 ${response.isFounder ? 'bg-blue-50' : 'bg-gray-50'}`}>
+                    <div className="flex items-center">
+                      <UserAvatar 
+                        name={response.authorName}
+                        size="sm"
+                        className={`mr-2 ${response.isFounder ? 'ring-2 ring-blue-500' : ''}`}
+                      />
+                      <div>
+                        <span className="font-medium text-gray-900">{response.authorName}</span>
+                        {response.isFounder && (
+                          <span className="ml-2 bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">
+                            Founder
+                          </span>
+                        )}
+                        {((!currentUser && response.anonymousId === getAnonymousUserId()) || 
+                          (currentUser && currentUser.uid === response.authorId)) && (
+                          <span className="ml-2 bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full">
+                            You
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {formatRelativeTime(response.createdAt)}
+                    </div>
+                  </div>
+                  
+                  <div className="px-4 py-4 bg-white">
+                    <div className="prose max-w-none text-gray-700 whitespace-pre-line">
+                      {response.content}
+                    </div>
                   </div>
                 </div>
-                
-                <div className="px-4 py-4 bg-white">
-                  <div className="prose max-w-none text-gray-700 whitespace-pre-line">
-                    {response.content}
-                  </div>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
             
             {/* Closing information */}
             {(thread.status as string) === 'closed' && (
@@ -661,6 +716,9 @@ const ThreadPage = () => {
                       )}
                     </div>
                   </div>
+                  <div className="text-sm text-gray-500">
+                    {thread.closedAt ? formatRelativeTime(thread.closedAt as Date) : formatRelativeTime(thread.updatedAt || thread.createdAt)}
+                  </div>
                 </div>
                 
                 <div className="px-4 py-4 bg-white">
@@ -678,11 +736,57 @@ const ThreadPage = () => {
                       {thread.closingNote && (
                         <span className="block mt-2">{thread.closingNote}</span>
                       )}
+                      <span className="block mt-2 text-sm text-gray-600">This thread is closed but you can still add responses if you have additional information.</span>
                     </p>
                   </div>
                 </div>
               </div>
             )}
+            
+            {/* After closed responses */}
+            {(thread.status as string) === 'closed' && thread.closedAt && 
+              responses
+                .filter(response => new Date(response.createdAt) >= new Date(thread.closedAt as Date))
+                .map((response) => (
+                  <div 
+                    key={response.id} 
+                    className={`border border-gray-200 rounded-lg overflow-hidden ${response.isFounder ? 'border-l-4 border-l-blue-500' : ''}`}
+                  >
+                    <div className={`flex items-center justify-between px-4 py-3 ${response.isFounder ? 'bg-blue-50' : 'bg-gray-50'}`}>
+                      <div className="flex items-center">
+                        <UserAvatar 
+                          name={response.authorName}
+                          size="sm"
+                          className={`mr-2 ${response.isFounder ? 'ring-2 ring-blue-500' : ''}`}
+                        />
+                        <div>
+                          <span className="font-medium text-gray-900">{response.authorName}</span>
+                          {response.isFounder && (
+                            <span className="ml-2 bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">
+                              Founder
+                            </span>
+                          )}
+                          {((!currentUser && response.anonymousId === getAnonymousUserId()) || 
+                            (currentUser && currentUser.uid === response.authorId)) && (
+                            <span className="ml-2 bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full">
+                              You
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {formatRelativeTime(response.createdAt)}
+                      </div>
+                    </div>
+                    
+                    <div className="px-4 py-4 bg-white">
+                      <div className="prose max-w-none text-gray-700 whitespace-pre-line">
+                        {response.content}
+                      </div>
+                    </div>
+                  </div>
+                ))
+            }
           </div>
         ) : (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center mb-8">
@@ -816,14 +920,59 @@ const ThreadPage = () => {
           </form>
         </div>
       ) : (
-        <div className="border border-gray-200 rounded-lg p-6 text-center mb-8 bg-gray-50">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-          <h3 className="font-medium text-gray-900 mb-2">This conversation is closed</h3>
-          <p className="text-gray-600 max-w-md mx-auto">
-            The founder has closed this thread and it is no longer accepting new responses.
-          </p>
+        <div className="border border-gray-200 rounded-lg p-6 mb-8 shadow-sm bg-white">
+          <div className="bg-amber-50 border border-amber-100 rounded-md p-3 mb-5 flex items-start">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="text-sm text-amber-800 font-medium">This thread has been marked as closed by the founder</p>
+              <p className="text-sm text-amber-700 mt-1">You can still add your response, but the issue may have already been addressed.</p>
+            </div>
+          </div>
+        
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            {isFounder ? "Reply to this question" : "Add your response"}
+          </h3>
+          
+          {formError && (
+            <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-md mb-4 text-sm">
+              {formError}
+            </div>
+          )}
+          
+          <form onSubmit={handleSubmitResponse} className="space-y-4">
+            <div>
+              <textarea
+                value={responseContent}
+                onChange={(e) => setResponseContent(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={4}
+                placeholder={isFounder ? "Type your response to help solve this issue..." : "Share your thoughts or additional information..."}
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1 flex items-center">
+                {!currentUser && (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Your name will appear as "{getAnonymousUserName()}"
+                  </>
+                )}
+              </p>
+            </div>
+            
+            <div>
+              <button
+                type="submit"
+                disabled={submitting}
+                className={`px-5 py-2.5 ${isFounder ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-800 hover:bg-gray-900'} text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-sm w-full md:w-auto`}
+              >
+                {submitting ? 'Sending...' : isFounder ? 'Send Founder Response' : 'Post Response'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
       
