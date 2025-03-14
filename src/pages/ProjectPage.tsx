@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, updateDoc, increment, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -7,6 +7,7 @@ import ProjectAvatar from '../components/ProjectAvatar';
 import { getAnonymousUserId, getAnonymousUserName } from '../lib/userUtils';
 import { sendNewIssueNotification } from '../lib/emailService';
 import FounderPresenceIndicator from '../components/FounderPresenceIndicator';
+import { debouncedGenerateIssueTitleAndTag, generateIssueTitleAndTag } from '../lib/geminiService';
 
 interface Project {
   id: string;
@@ -66,6 +67,13 @@ const ProjectPage = () => {
   const [selectedTag, setSelectedTag] = useState(issueTags[0].value);
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  
+  // Title editing state
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [hasManuallyEditedTitle, setHasManuallyEditedTitle] = useState(false);
+  
+  // AI generation state
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   
   // Confirmation modal state
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
@@ -265,13 +273,32 @@ const ProjectPage = () => {
     }
   };
 
+  // Handle content change and generate title and tag
+  const handleContentChange = useCallback(async (content: string) => {
+    setThreadContent(content);
+    
+    // Only generate if content has enough characters
+    if (content.trim().length >= 10) {
+      setIsGeneratingAI(true);
+      try {
+        const generated = await debouncedGenerateIssueTitleAndTag(content);
+        // Only update title if user hasn't manually edited it
+        if (generated.title && !hasManuallyEditedTitle) {
+          setThreadTitle(generated.title);
+        }
+        if (generated.tag) {
+          setSelectedTag(generated.tag);
+        }
+      } catch (error) {
+        console.error('Error generating title and tag:', error);
+      } finally {
+        setIsGeneratingAI(false);
+      }
+    }
+  }, []);
+
   const handleNewThreadSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
-    if (!threadTitle.trim()) {
-      setFormError('Title is required');
-      return;
-    }
     
     if (!threadContent.trim()) {
       setFormError('Description is required');
@@ -287,6 +314,31 @@ const ProjectPage = () => {
       setSubmitting(true);
       setFormError('');
       
+      // If title is still generating or empty, generate one last time
+      let finalTitle = threadTitle;
+      let finalTag = selectedTag;
+      
+      if (isGeneratingAI || !finalTitle.trim()) {
+        try {
+          // Cancel any pending debounced calls
+          setIsGeneratingAI(true);
+          
+          // Generate immediately without debounce for submission
+          const generated = await generateIssueTitleAndTag(threadContent);
+          finalTitle = generated.title || 'Untitled Issue';
+          finalTag = generated.tag || 'question';
+          
+          // Update state for consistency
+          setThreadTitle(finalTitle);
+          setSelectedTag(finalTag);
+        } catch (error) {
+          console.error('Error generating title and tag:', error);
+          finalTitle = 'Untitled Issue';
+        } finally {
+          setIsGeneratingAI(false);
+        }
+      }
+      
       // Use consistent anonymous user identification
       const authorName = currentUser 
         ? (currentUser.displayName || 'Anonymous Founder') 
@@ -297,7 +349,7 @@ const ProjectPage = () => {
       // Create thread document
       const threadRef = await addDoc(collection(db, 'threads'), {
         projectId: project.id,
-        title: threadTitle,
+        title: finalTitle,
         content: threadContent,
         status: 'open',
         createdAt: serverTimestamp(),
@@ -306,7 +358,7 @@ const ProjectPage = () => {
         authorId: currentUser?.uid || null,
         anonymousId: anonymousId, // Store anonymous ID for non-logged in users
         isPublic: true,
-        tag: selectedTag,
+        tag: finalTag,
         responseCount: 0, // Initialize response count to 0
       });
       
@@ -327,7 +379,7 @@ const ProjectPage = () => {
           projectId: project.id,
           projectName: project.name,
           issueId: threadRef.id,
-          issueTitle: threadTitle,
+          issueTitle: finalTitle,
           issueContent: threadContent,
           recipients: [
             {
@@ -350,6 +402,7 @@ const ProjectPage = () => {
       setThreadTitle('');
       setThreadContent('');
       setSelectedTag(issueTags[0].value);
+      setHasManuallyEditedTitle(false);
       setShowNewThreadForm(false);
       
       // Show confirmation modal
@@ -586,18 +639,19 @@ const ProjectPage = () => {
                   </p>
                 </div>
                 <FounderPresenceIndicator userId={project.ownerId} />
-                <div className="ml-auto flex items-center space-x-2">
+                <div className="ml-auto flex items-center space-x-3">
                   {project.founderTwitterUrl && (
                     <a 
                       href={project.founderTwitterUrl} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      className="text-gray-500 hover:text-gray-700 transition-colors flex items-center"
                       aria-label="Founder's Twitter/X profile"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                       </svg>
+                      <span className="text-xs">Twitter</span>
                     </a>
                   )}
                   
@@ -606,12 +660,13 @@ const ProjectPage = () => {
                       href={project.founderLinkedinUrl} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      className="text-gray-500 hover:text-gray-700 transition-colors flex items-center"
                       aria-label="Founder's LinkedIn profile"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
                       </svg>
+                      <span className="text-xs">LinkedIn</span>
                     </a>
                   )}
                   
@@ -620,12 +675,13 @@ const ProjectPage = () => {
                       href={project.founderGithubUrl} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      className="text-gray-500 hover:text-gray-700 transition-colors flex items-center"
                       aria-label="Founder's GitHub profile"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.236 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
                       </svg>
+                      <span className="text-xs">GitHub</span>
                     </a>
                   )}
                 </div>
@@ -637,30 +693,47 @@ const ProjectPage = () => {
 
       <div className="border-t border-gray-100 my-4"></div> {/* Top separator */}
 
-      {/* Primary CTA - Prominent and focused */}
+      {/* Primary CTA - Prominent and focused when form is closed, subtle when form is open */}
       <div className="mt-8">
         <button
-          onClick={() => setShowNewThreadForm(!showNewThreadForm)}
-          className="w-full px-5 py-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center text-base font-medium shadow-sm"
+          onClick={() => {
+            if (showNewThreadForm) {
+              // Reset form when closing
+              setShowNewThreadForm(false);
+              setIsEditingTitle(false);
+            } else {
+              setShowNewThreadForm(true);
+            }
+          }}
+          className={`w-full px-5 py-4 ${
+            showNewThreadForm 
+              ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+          } rounded-md transition-colors flex items-center justify-center text-base font-medium shadow-sm`}
           aria-label="Get help from founder"
         >
-          <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <svg className={`h-5 w-5 mr-2 ${showNewThreadForm ? 'text-gray-500' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
           </svg>
-          Ask {project.founderName ? project.founderName.split(' ')[0] : 'the Founder'} for Help
+          {showNewThreadForm ? 'Close Form' : `Ask ${project.founderName ? project.founderName.split(' ')[0] : 'the Founder'} for Help`}
         </button>
-        <p className="text-center text-sm text-gray-500 mt-2">
-          Get a personal response directly from {project.founderName || 'the creator of ' + project.name}
-        </p>
+        {!showNewThreadForm && (
+          <p className="text-center text-sm text-gray-500 mt-2">
+            Get a personal response directly from {project.founderName || 'the creator of ' + project.name}
+          </p>
+        )}
       </div>
 
-      {/* New Thread Form - Enhanced clarity */}
+      {/* New Thread Form - Minimalist Apple-style design */}
       {showNewThreadForm && (
-        <div className="border border-gray-200 rounded-md p-6 mb-8 shadow-sm">
-          <div className="flex justify-between items-center mb-5">
-            <h3 className="text-lg font-medium text-gray-900">What can the founder help you with?</h3>
+        <div className="border border-gray-200 rounded-md p-6 mb-8 shadow-sm mt-4">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-medium text-gray-900">Ask a question</h3>
             <button 
-              onClick={() => setShowNewThreadForm(false)}
+              onClick={() => {
+                setShowNewThreadForm(false);
+                setIsEditingTitle(false);
+              }}
               className="text-gray-400 hover:text-gray-600 cursor-pointer"
               aria-label="Close form"
             >
@@ -676,62 +749,113 @@ const ProjectPage = () => {
             </div>
           )}
           
-          <form onSubmit={handleNewThreadSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="issue-title" className="block text-sm font-medium text-gray-700 mb-1">
-                What's your question or issue?
-              </label>
-              <input
-                id="issue-title"
-                type="text"
-                value={threadTitle}
-                onChange={(e) => setThreadTitle(e.target.value)}
-                required
-                placeholder="Summarize your question in a sentence"
-                className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            
+          <form onSubmit={handleNewThreadSubmit} className="space-y-5">
             <div>
               <label htmlFor="issue-content" className="block text-sm font-medium text-gray-700 mb-1">
-                Details
+                Describe your question or issue
               </label>
               <textarea
                 id="issue-content"
                 value={threadContent}
-                onChange={(e) => setThreadContent(e.target.value)}
+                onChange={(e) => handleContentChange(e.target.value)}
                 required
-                rows={5}
-                placeholder="Provide more details to help the founder understand your question or issue"
+                rows={6}
+                placeholder="What would you like help with?"
                 className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             
-            <div>
-              <label htmlFor="issue-tag" className="block text-sm font-medium text-gray-700 mb-1">
-                Topic
-              </label>
-              <select
-                id="issue-tag"
-                value={selectedTag}
-                onChange={(e) => setSelectedTag(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-              >
-                {issueTags.map(tag => (
-                  <option key={tag.value} value={tag.value}>{tag.label}</option>
-                ))}
-              </select>
-            </div>
+            {/* Smart preview section */}
+            {threadContent.trim().length >= 10 && (
+              <div className="border-t border-gray-100 pt-4">
+                <div className="text-sm text-gray-500 mb-2">Preview</div>
+                
+                <div className="space-y-3">
+                  {/* Title preview */}
+                  <div>
+                    <div className="w-full flex items-center gap-2">
+                      {isEditingTitle ? (
+                        <div className="w-full flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={threadTitle}
+                            onChange={(e) => {
+                              setThreadTitle(e.target.value);
+                              setHasManuallyEditedTitle(true);
+                            }}
+                            className="font-medium text-gray-900 border-b border-gray-300 focus:border-blue-500 focus:outline-none py-1 w-full"
+                            placeholder="Enter a title"
+                            autoFocus
+                            onBlur={() => setIsEditingTitle(false)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                setIsEditingTitle(false);
+                              }
+                            }}
+                          />
+                          <button
+                            onClick={() => setIsEditingTitle(false)}
+                            className="text-blue-500 hover:text-blue-700 text-xs font-medium"
+                            title="Save title"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <h4 className="font-medium text-gray-900">{threadTitle || (isGeneratingAI ? 'Generating title...' : 'Title')}</h4>
+                          {!isGeneratingAI && threadTitle && (
+                            <button
+                              onClick={() => setIsEditingTitle(true)}
+                              className="text-gray-400 hover:text-blue-500 transition-colors"
+                              aria-label="Edit title"
+                              title="Edit title"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                              </svg>
+                            </button>
+                          )}
+                          {hasManuallyEditedTitle && threadTitle && (
+                            <span className="text-xs text-blue-500 ml-2" title="You've edited this title">
+                              (edited)
+                            </span>
+                          )}
+                        </>
+                      )}
+                      {isGeneratingAI && (
+                        <div className="animate-pulse h-2 w-2 rounded-full bg-blue-500"></div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Tag preview */}
+                  <div>
+                    {isGeneratingAI ? (
+                      <div className="animate-pulse h-5 w-16 bg-gray-200 rounded-md"></div>
+                    ) : (
+                      getTagBadge(selectedTag)
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             
-            <div className="pt-3">
+            <div className="pt-2">
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || isGeneratingAI || (threadContent.trim().length < 10)}
                 className="w-full px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
               >
-                {submitting ? 'Sending to founder...' : 'Send to Founder'}
+                {submitting ? 'Sending...' : (isGeneratingAI ? 'Generating Title...' : 'Send to Founder')}
               </button>
+              
+              <p className="mt-3 text-xs text-center text-gray-500">
+                {threadContent.trim().length < 10 ? 
+                  'Start typing to generate a title and topic automatically' : 
+                  'Title and topic will be generated automatically based on your description'}
+              </p>
+              
               {currentUser && (
                 <div className="flex items-center justify-center text-sm text-gray-500 mt-4">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
