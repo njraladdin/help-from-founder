@@ -21,6 +21,10 @@ interface Project {
   linkedinUrl?: string;
   githubUrl?: string;
   ownerEmail?: string;
+  founderName?: string;
+  founderTwitterUrl?: string;
+  founderLinkedinUrl?: string;
+  founderGithubUrl?: string;
 }
 
 interface Thread {
@@ -99,11 +103,22 @@ const ProjectPage = () => {
         
         // Fetch the owner's email from users collection
         let ownerEmail;
+        let founderName;
+        let founderTwitterUrl = '';
+        let founderLinkedinUrl = '';
+        let founderGithubUrl = '';
+        
         try {
           const userDoc = await getDoc(doc(db, 'users', projectData.ownerId));
           if (userDoc.exists()) {
             const userData = userDoc.data();
             ownerEmail = userData.email;
+            // Get founder's name from display name or email
+            founderName = userData.displayName || userData.email?.split('@')[0] || 'Project Founder';
+            // Get founder's social media links if they exist
+            founderTwitterUrl = userData.twitterUrl || '';
+            founderLinkedinUrl = userData.linkedinUrl || '';
+            founderGithubUrl = userData.githubUrl || '';
           }
         } catch (userError) {
           console.error('Error fetching project owner data:', userError);
@@ -123,6 +138,10 @@ const ProjectPage = () => {
           twitterUrl: projectData.twitterUrl,
           linkedinUrl: projectData.linkedinUrl,
           githubUrl: projectData.githubUrl,
+          founderName: founderName,
+          founderTwitterUrl: founderTwitterUrl,
+          founderLinkedinUrl: founderLinkedinUrl,
+          founderGithubUrl: founderGithubUrl,
         };
 
         setProject(projectObj);
@@ -433,9 +452,11 @@ const ProjectPage = () => {
               </svg>
             </div>
             <div>
-              <h3 className="text-base font-medium text-blue-800 mb-1">Direct Line to the Founder!</h3>
+              <h3 className="text-base font-medium text-blue-800 mb-1">
+                Direct Line to Founder!
+              </h3>
               <p className="text-sm text-blue-700">
-                Need help with {project.name}? Ask questions and get personalized answers directly from the founder themselves. No sign-up required.
+                Need help with {project.name}? Ask questions and get personalized answers directly from the founder. No sign-up required.
               </p>
             </div>
           </div>
@@ -521,7 +542,7 @@ const ProjectPage = () => {
                     aria-label="GitHub profile"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.239 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                      <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.236 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
                     </svg>
                   </a>
                 )}
@@ -545,9 +566,73 @@ const ProjectPage = () => {
           </div>
         </div>
       </div>
+      {/* Integrated Founder Information - Apple Style */}
+      {project.founderName && (
+        <div className="flex items-center mt-4">
+          <div className="flex-shrink-0 mr-3">
+            <div className="w-7 h-7 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center text-sm font-medium">
+              {project.founderName.charAt(0).toUpperCase()}
+            </div>
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center">
+              <p className="text-sm text-gray-600">
+                <span className="text-gray-900 font-medium">{project.founderName}</span>
+                <span className="mx-1.5 text-gray-400">·</span>
+                <span>Founder</span>
+              </p>
+              <div className="ml-auto flex items-center space-x-2">
+                {project.founderTwitterUrl && (
+                  <a 
+                    href={project.founderTwitterUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label="Founder's Twitter/X profile"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                  </a>
+                )}
+                
+                {project.founderLinkedinUrl && (
+                  <a 
+                    href={project.founderLinkedinUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label="Founder's LinkedIn profile"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                    </svg>
+                  </a>
+                )}
+                
+                {project.founderGithubUrl && (
+                  <a 
+                    href={project.founderGithubUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label="Founder's GitHub profile"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.236 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+                    </svg>
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="border-t border-gray-100 my-4"></div> {/* Top separator */}
 
       {/* Primary CTA - Prominent and focused */}
-      <div className="mb-8">
+      <div className="mt-8">
         <button
           onClick={() => setShowNewThreadForm(!showNewThreadForm)}
           className="w-full px-5 py-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center text-base font-medium shadow-sm"
@@ -556,10 +641,10 @@ const ProjectPage = () => {
           <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
           </svg>
-          Ask the Founder for Help
+          Ask {project.founderName ? project.founderName.split(' ')[0] : 'the Founder'} for Help
         </button>
         <p className="text-center text-sm text-gray-500 mt-2">
-          Get a personal response directly from the creator of {project.name}
+          Get a personal response directly from {project.founderName || 'the creator of ' + project.name}
         </p>
       </div>
 
@@ -750,7 +835,7 @@ const ProjectPage = () => {
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">Be the first to ask a question</h3>
           <p className="text-gray-600 text-sm mb-4 max-w-md mx-auto">
-            Get a personal response from the creator of {project.name}.
+            Get a personal response from {project.founderName ? project.founderName : `the creator of ${project.name}`}.
           </p>
           <button
             onClick={() => setShowNewThreadForm(true)}
@@ -779,7 +864,7 @@ const ProjectPage = () => {
             </div>
             
             <p className="text-gray-600 mb-6 text-center">
-              The founder of {project.name} will respond to your question soon.
+              {project.founderName ? `${project.founderName} will respond to your question soon.` : `The founder of ${project.name} will respond to your question soon.`}
             </p>
             
             {!currentUser && (
