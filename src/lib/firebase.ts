@@ -37,4 +37,9 @@ try {
   console.error('Error enabling persistence:', error);
 }
 
-export default app; 
+export default app;
+
+import { getDatabase } from "firebase/database";
+
+// Initialize Realtime Database for presence
+export const rtdb = getDatabase(app); 

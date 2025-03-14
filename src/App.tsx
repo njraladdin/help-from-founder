@@ -12,7 +12,16 @@ import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 
+// Import presence tracking
+import { useEffect } from 'react';
+import { initPresenceTracking } from './lib/presenceService';
+
 function App() {
+  // Initialize presence tracking on app load
+  useEffect(() => {
+    initPresenceTracking();
+  }, []);
+
   return (
     <Router>
       <AuthProvider>
