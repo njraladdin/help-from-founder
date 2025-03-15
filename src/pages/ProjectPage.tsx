@@ -949,7 +949,7 @@ const ProjectPage = () => {
           )}
         </>
       ) : (
-        <div className="border border-gray-200 rounded-md p-6 text-center">
+        <div className="border border-gray-200 rounded-md mt-4 p-6 text-center">
           <div className="flex justify-center mb-4">
             <div className="relative">
               <div className="absolute -right-1 -top-1 bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
