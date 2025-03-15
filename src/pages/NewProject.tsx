@@ -130,7 +130,7 @@ const NewProject = () => {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         totalIssues: 0,
-        solvedIssues: 0,
+        closedIssues: 0,
       });
       
       console.log('Project created with ID:', projectRef.id);

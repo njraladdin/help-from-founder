@@ -7,6 +7,58 @@ import { getAnonymousUserId, getAnonymousUserName } from '../lib/userUtils';
 import { sendNewIssueNotification, getThreadParticipants } from '../lib/emailService';
 import UserAvatar from '../components/UserAvatar';
 
+// Configuration for closing reasons with respective styling
+const closingReasonConfig = {
+  solved: {
+    key: 'solved',
+    label: 'Solved',
+    color: 'green',
+    icon: (className: string) => (
+      <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      </svg>
+    ),
+    smallIcon: (className: string) => (
+      <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    message: 'This issue has been solved.'
+  },
+  'feature backlog': {
+    key: 'feature backlog',
+    label: 'Feature backlog',
+    color: 'purple',
+    icon: (className: string) => (
+      <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+      </svg>
+    ),
+    smallIcon: (className: string) => (
+      <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+      </svg>
+    ),
+    message: 'This feature has been added to the backlog.'
+  },
+  other: {
+    key: 'other',
+    label: 'Other',
+    color: 'gray',
+    icon: (className: string) => (
+      <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    smallIcon: (className: string) => (
+      <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    message: 'This issue has been closed.'
+  }
+};
+
 interface Thread {
   id: string;
   title: string;
@@ -358,6 +410,12 @@ const ThreadPage = () => {
           closedBy: null
         });
         
+        // Decrement the closedIssues counter when reopening an issue
+        const projectRef = doc(db, 'projects', thread.projectId);
+        await updateDoc(projectRef, {
+          closedIssues: increment(-1)
+        });
+        
         // Update local thread state
         setThread({
           ...thread,
@@ -394,13 +452,11 @@ const ThreadPage = () => {
         closedAt: serverTimestamp(),
       });
       
-      // Update the solvedIssues counter if reason is 'solved'
-      if (closingReason === 'solved') {
-        const projectRef = doc(db, 'projects', thread.projectId);
-        await updateDoc(projectRef, {
-          solvedIssues: increment(1)
-        });
-      }
+      // Update the closedIssues counter for all closed issues
+      const projectRef = doc(db, 'projects', thread.projectId);
+      await updateDoc(projectRef, {
+        closedIssues: increment(1)
+      });
       
       // Update local thread state
       const now = new Date();
@@ -455,13 +511,13 @@ const ThreadPage = () => {
       const projectRef = doc(db, 'projects', thread.projectId);
       
       // Decrement totalIssues
-      const updateData: { totalIssues: FieldValue; solvedIssues?: FieldValue } = {
+      const updateData: { totalIssues: FieldValue; closedIssues?: FieldValue } = {
         totalIssues: increment(-1)
       };
       
-      // If thread was resolved, also decrement solvedIssues
-      if (thread.status === 'closed' && thread.closingReason === 'solved') {
-        updateData.solvedIssues = increment(-1);
+      // If thread was closed, also decrement closedIssues
+      if (thread.status === 'closed') {
+        updateData.closedIssues = increment(-1);
       }
       
       await updateDoc(projectRef, updateData);
@@ -509,9 +565,26 @@ const ThreadPage = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'open':
-        return <span className="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded-md">Open</span>;
-      case 'closed':
-        return <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md">Closed</span>;
+        return (
+          <span className="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded-md flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11v8a1 1 0 001 1h8a1 1 0 001-1v-8m-10 0V9a3 3 0 013-3h4a3 3 0 013 3v2m-10 0h10" />
+            </svg>
+            Open
+          </span>
+        );
+      case 'closed': {
+        // Get the appropriate config for this closing reason
+        const reasonKey = thread?.closingReason || 'other';
+        const config = closingReasonConfig[reasonKey as keyof typeof closingReasonConfig] || closingReasonConfig.other;
+        
+        return (
+          <span className={`px-2 py-1 bg-${config.color}-50 text-${config.color}-600 text-xs rounded-md flex items-center`}>
+            {config.icon("h-3.5 w-3.5 mr-1")}
+            {config.label}
+          </span>
+        );
+      }
       default:
         return null;
     }
@@ -693,25 +766,39 @@ const ThreadPage = () => {
             
             {/* Closing information */}
             {(thread.status as string) === 'closed' && (
-              <div className="border border-gray-200 rounded-lg overflow-hidden border-l-4 border-l-gray-500">
-                <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
+              <div className={`border border-gray-200 rounded-lg overflow-hidden border-l-4 ${
+                // Get the appropriate config based on closing reason
+                (thread.closingReason ? 
+                  `border-l-${closingReasonConfig[thread.closingReason as keyof typeof closingReasonConfig].color}-500` : 
+                  `border-l-${closingReasonConfig.other.color}-500`)
+              }`}>
+                <div className={`flex items-center justify-between px-4 py-3 ${
+                  // Get the appropriate background color
+                  (thread.closingReason ? 
+                    `bg-${closingReasonConfig[thread.closingReason as keyof typeof closingReasonConfig].color}-50` : 
+                    `bg-${closingReasonConfig.other.color}-50`)
+                }`}>
                   <div className="flex items-center">
                     <UserAvatar 
                       name={thread.closedBy || 'Founder'}
                       size="sm"
-                      className="mr-2 ring-2 ring-gray-500"
+                      className={`mr-2 ring-2 ${
+                        // Get the appropriate ring color
+                        (thread.closingReason ? 
+                          `ring-${closingReasonConfig[thread.closingReason as keyof typeof closingReasonConfig].color}-500` : 
+                          `ring-${closingReasonConfig.other.color}-500`)
+                      }`}
                     />
                     <div>
                       <span className="font-medium text-gray-900">
                         {thread.closedBy ? `Thread closed by ${thread.closedBy}` : 'Thread closed by founder'}
                       </span>
                       {thread.closingReason && (
-                        <span className="ml-2 bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded-full">
-                          {thread.closingReason === 'solved' 
-                            ? 'Solved' 
-                            : thread.closingReason === 'feature backlog' 
-                              ? 'Feature backlog' 
-                              : 'Other'}
+                        <span className={`ml-2 text-xs px-2 py-0.5 rounded-full inline-flex items-center ${
+                          `bg-${closingReasonConfig[thread.closingReason as keyof typeof closingReasonConfig].color}-100 text-${closingReasonConfig[thread.closingReason as keyof typeof closingReasonConfig].color}-700`
+                        }`}>
+                          {closingReasonConfig[thread.closingReason as keyof typeof closingReasonConfig].icon("h-3.5 w-3.5 mr-1")}
+                          {closingReasonConfig[thread.closingReason as keyof typeof closingReasonConfig].label}
                         </span>
                       )}
                     </div>
@@ -723,21 +810,39 @@ const ThreadPage = () => {
                 
                 <div className="px-4 py-4 bg-white">
                   <div className="prose max-w-none text-gray-700">
-                    <p>
-                      {thread.closingReason === 'solved' && (
-                        <span className="font-medium">This issue has been solved.</span>
+                    <div className="flex items-start">
+                      {thread.closingReason ? (
+                        <>
+                          {closingReasonConfig[thread.closingReason as keyof typeof closingReasonConfig].smallIcon(`h-5 w-5 mr-2 flex-shrink-0 text-${closingReasonConfig[thread.closingReason as keyof typeof closingReasonConfig].color}-500`)}
+                          <div className="flex-1">
+                            <p className="font-medium mb-2">
+                              {closingReasonConfig[thread.closingReason as keyof typeof closingReasonConfig].message}
+                            </p>
+                            
+                            {thread.closingNote && (
+                              <p className="mb-2">{thread.closingNote}</p>
+                            )}
+                            <p className="text-sm text-gray-600">
+                              This thread is closed but you can still add responses if you have additional information.
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {closingReasonConfig.other.smallIcon(`h-5 w-5 text-${closingReasonConfig.other.color}-500 mr-2 flex-shrink-0`)}
+                          <div className="flex-1">
+                            <p className="font-medium mb-2">{closingReasonConfig.other.message}</p>
+                            
+                            {thread.closingNote && (
+                              <p className="mb-2">{thread.closingNote}</p>
+                            )}
+                            <p className="text-sm text-gray-600">
+                              This thread is closed but you can still add responses if you have additional information.
+                            </p>
+                          </div>
+                        </>
                       )}
-                      {thread.closingReason === 'feature backlog' && (
-                        <span className="font-medium">This feature has been added to the backlog.</span>
-                      )}
-                      {(!thread.closingReason || thread.closingReason === 'other') && (
-                        <span className="font-medium">This issue has been closed.</span>
-                      )}
-                      {thread.closingNote && (
-                        <span className="block mt-2">{thread.closingNote}</span>
-                      )}
-                      <span className="block mt-2 text-sm text-gray-600">This thread is closed but you can still add responses if you have additional information.</span>
-                    </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1026,17 +1131,84 @@ const ThreadPage = () => {
           <div className="bg-white rounded-lg max-w-md w-full mx-auto p-6 shadow-xl animate-scale-in">
             <h3 className="text-xl font-medium text-gray-900 mb-4">Close This Issue</h3>
             
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Reason for closing</label>
-              <select
-                value={closingReason}
-                onChange={(e) => setClosingReason(e.target.value as 'solved' | 'feature backlog' | 'other')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="solved">Issue solved</option>
-                <option value="feature backlog">Added to feature backlog</option>
-                <option value="other">Other reason</option>
-              </select>
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Reason for closing</label>
+              <div className="space-y-3">
+                {/* Solved option */}
+                <label className={`flex items-start p-3 border rounded-md cursor-pointer ${
+                  closingReason === 'solved' 
+                    ? `border-${closingReasonConfig.solved.color}-500 bg-${closingReasonConfig.solved.color}-50` 
+                    : 'border-gray-200 hover:bg-gray-50'
+                }`}>
+                  <input 
+                    type="radio" 
+                    name="closingReason" 
+                    value="solved"
+                    checked={closingReason === 'solved'} 
+                    onChange={() => setClosingReason('solved')}
+                    className="mr-3 mt-0.5"
+                  />
+                  <div>
+                    <div className="flex items-center">
+                      {closingReasonConfig.solved.icon(`h-4 w-4 text-${closingReasonConfig.solved.color}-500 mr-2`)}
+                      <span className="font-medium text-gray-900">Issue solved</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Mark this issue as resolved and show users that a solution was found.
+                    </p>
+                  </div>
+                </label>
+
+                {/* Feature backlog option */}
+                <label className={`flex items-start p-3 border rounded-md cursor-pointer ${
+                  closingReason === 'feature backlog' 
+                    ? `border-${closingReasonConfig['feature backlog'].color}-500 bg-${closingReasonConfig['feature backlog'].color}-50` 
+                    : 'border-gray-200 hover:bg-gray-50'
+                }`}>
+                  <input 
+                    type="radio" 
+                    name="closingReason" 
+                    value="feature backlog"
+                    checked={closingReason === 'feature backlog'} 
+                    onChange={() => setClosingReason('feature backlog')}
+                    className="mr-3 mt-0.5"
+                  />
+                  <div>
+                    <div className="flex items-center">
+                      {closingReasonConfig['feature backlog'].icon(`h-4 w-4 text-${closingReasonConfig['feature backlog'].color}-500 mr-2`)}
+                      <span className="font-medium text-gray-900">Added to feature backlog</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Close this thread and indicate that this feature request will be considered for future development.
+                    </p>
+                  </div>
+                </label>
+
+                {/* Other option */}
+                <label className={`flex items-start p-3 border rounded-md cursor-pointer ${
+                  closingReason === 'other' 
+                    ? `border-${closingReasonConfig.other.color}-500 bg-${closingReasonConfig.other.color}-50` 
+                    : 'border-gray-200 hover:bg-gray-50'
+                }`}>
+                  <input 
+                    type="radio" 
+                    name="closingReason" 
+                    value="other"
+                    checked={closingReason === 'other'} 
+                    onChange={() => setClosingReason('other')}
+                    className="mr-3 mt-0.5"
+                  />
+                  <div>
+                    <div className="flex items-center">
+                      {closingReasonConfig.other.icon(`h-4 w-4 text-${closingReasonConfig.other.color}-500 mr-2`)}
+                      <span className="font-medium text-gray-900">Other reason</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Close this thread for another reason (please explain in the note below).
+                    </p>
+                  </div>
+                </label>
+              </div>
             </div>
             
             <div className="mb-5">
@@ -1062,7 +1234,13 @@ const ThreadPage = () => {
               </button>
               <button
                 onClick={handleCloseThread}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm disabled:opacity-70"
+                className={`px-4 py-2 text-white rounded-md transition-colors text-sm font-medium shadow-sm disabled:opacity-70 ${
+                  closingReason === 'solved' 
+                    ? `bg-${closingReasonConfig.solved.color}-600 hover:bg-${closingReasonConfig.solved.color}-700` 
+                    : closingReason === 'feature backlog' 
+                      ? `bg-${closingReasonConfig['feature backlog'].color}-600 hover:bg-${closingReasonConfig['feature backlog'].color}-700` 
+                      : `bg-${closingReasonConfig.other.color}-600 hover:bg-${closingReasonConfig.other.color}-700`
+                }`}
                 disabled={isClosing}
               >
                 {isClosing ? 'Closing...' : 'Close Issue'}

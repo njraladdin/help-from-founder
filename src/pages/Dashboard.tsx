@@ -16,7 +16,7 @@ interface Project {
   createdAt: Date;
   logoUrl?: string;
   totalIssues?: number;
-  solvedIssues?: number;
+  closedIssues?: number;
   twitterUrl?: string;
   linkedinUrl?: string;
   githubUrl?: string;
@@ -94,7 +94,7 @@ const Dashboard = () => {
             createdAt: data.createdAt?.toDate() || new Date(),
             logoUrl: data.logoUrl,
             totalIssues: data.totalIssues || 0,
-            solvedIssues: data.solvedIssues || 0,
+            closedIssues: data.closedIssues || 0,
             twitterUrl: data.twitterUrl,
             linkedinUrl: data.linkedinUrl,
             githubUrl: data.githubUrl,
@@ -124,10 +124,10 @@ const Dashboard = () => {
     fetchProjects();
   }, [currentUser]);
 
-  // Calculate the percentage of solved issues
-  const getSolvedPercentage = (totalIssues: number, solvedIssues: number) => {
+  // Calculate the percentage of closed issues
+  const getClosedPercentage = (totalIssues: number, closedIssues: number) => {
     if (totalIssues === 0) return 0;
-    return Math.round((solvedIssues / totalIssues) * 100);
+    return Math.round((closedIssues / totalIssues) * 100);
   };
 
   // Handle display name update
@@ -497,8 +497,8 @@ const Dashboard = () => {
                             {project.totalIssues} issues
                           </div>
                           <div className="text-xs font-medium rounded-full px-2 py-0.5 bg-gray-100">
-                            <span className={(project.solvedIssues ?? 0) > 0 ? 'text-green-600' : 'text-gray-500'}>
-                              {getSolvedPercentage(project.totalIssues ?? 0, project.solvedIssues ?? 0)}% closed
+                            <span className={(project.closedIssues ?? 0) > 0 ? 'text-green-600' : 'text-gray-500'}>
+                              {getClosedPercentage(project.totalIssues ?? 0, project.closedIssues ?? 0)}% closed
                             </span>
                           </div>
                         </div>

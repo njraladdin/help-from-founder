@@ -18,7 +18,7 @@ interface Project {
   website?: string;
   logoUrl?: string;
   totalIssues?: number;
-  solvedIssues?: number;
+  closedIssues?: number;
   twitterUrl?: string;
   linkedinUrl?: string;
   githubUrl?: string;
@@ -141,7 +141,7 @@ const ProjectPage = () => {
           ownerEmail: ownerEmail,
           createdAt: projectData.createdAt?.toDate() || new Date(),
           totalIssues: projectData.totalIssues || 0,
-          solvedIssues: projectData.solvedIssues || 0,
+          closedIssues: projectData.closedIssues || 0,
           logoUrl: projectData.logoUrl,
           website: projectData.website,
           twitterUrl: projectData.twitterUrl,
